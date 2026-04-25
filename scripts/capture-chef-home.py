@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
-MOBILE_URL = "https://cgs-porter-muzba5p4e-nexalabch-creates-projects.vercel.app"
+MOBILE_URL = "https://cgs-porter-7t2t6ktsp-nexalabch-creates-projects.vercel.app"
 OUT = Path(__file__).resolve().parent.parent / "presentation" / "screenshots"
 
 

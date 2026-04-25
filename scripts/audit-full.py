@@ -18,7 +18,7 @@ ART = ROOT / "presentation" / "audit-artifacts"
 ART.mkdir(parents=True, exist_ok=True)
 
 ADMIN = "https://cgs-porter-admin-8oh6d3x1o-nexalabch-creates-projects.vercel.app"
-MOBILE = "https://cgs-porter-enj1rqdfw-nexalabch-creates-projects.vercel.app"
+MOBILE = "https://cgs-porter-ig4ac490o-nexalabch-creates-projects.vercel.app"
 EMAIL = "mate.torgvaidze@cgs-ltd.com"
 PWD = "CgsPorter2026!"
 
