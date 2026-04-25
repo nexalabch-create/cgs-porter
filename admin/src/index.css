@@ -45,3 +45,16 @@
     @apply px-4 py-3 text-sm text-ink border-t border-slate-100;
   }
 }
+
+/* On mobile, any .card containing a table gets horizontal scroll so the
+   table doesn't blow out the layout. Wrap an existing .card with .table
+   and we're good. */
+@media (max-width: 767px) {
+  .card { border-radius: 14px; }
+  .card table { min-width: 640px; }
+  .card:has(table) { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  /* Reduce default page-container horizontal padding on mobile so cards have breathing room */
+  .px-8 { padding-left: 1rem !important; padding-right: 1rem !important; }
+  /* Stat-card grids: stack 2 cols on mobile instead of 4 */
+  .grid.grid-cols-2.lg\:grid-cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

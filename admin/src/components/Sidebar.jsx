@@ -16,11 +16,11 @@ const NAV = [
   { to: '/parametres',  label: 'Paramètres', icon: Settings },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ onNavClick }) {
   const { profile, signOut } = useAuth();
 
   return (
-    <aside className="w-60 shrink-0 bg-navy text-white flex flex-col">
+    <aside className="w-60 shrink-0 bg-navy text-white flex flex-col h-full">
       <div className="px-5 pt-7 pb-5 border-b border-white/10">
         <div className="flex items-center gap-3">
           <img src="/logo-cgs.png" alt="CGS" className="h-8 w-auto bg-white rounded p-1" />
@@ -41,6 +41,7 @@ export default function Sidebar() {
             key={to}
             to={to}
             end={end}
+            onClick={onNavClick}
             className={({ isActive }) =>
               [
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition',
