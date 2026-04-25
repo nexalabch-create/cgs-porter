@@ -2,7 +2,7 @@
 """Diagnose why /services /crm /rapports /parametres render blank."""
 from playwright.sync_api import sync_playwright
 
-ADMIN = "https://cgs-porter-admin-fh0n2entl-nexalabch-creates-projects.vercel.app"
+ADMIN = "https://cgs-porter-admin-8oh6d3x1o-nexalabch-creates-projects.vercel.app"
 PWD = "CgsPorter2026!"
 
 with sync_playwright() as p:

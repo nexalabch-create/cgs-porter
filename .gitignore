@@ -28,3 +28,6 @@ admin/.vite
 # deck QA artefacts (regenerable from build-deck.mjs)
 presentation/qa-images
 presentation/CGS-Porter-Pitch.pdf
+
+# audit run artefacts (regenerable from scripts/audit-full.py)
+presentation/audit-artifacts
