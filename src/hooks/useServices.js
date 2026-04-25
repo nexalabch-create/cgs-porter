@@ -44,11 +44,13 @@ export function useServices(initial = []) {
 
     let channel;
     let mounted = true;
+    let authSub;
 
-    (async () => {
+    const fetchAndSubscribe = async () => {
       const sb = await getSupabase();
       if (!sb || !mounted) { setIsLoading(false); return; }
 
+      // Re-fetch with current session — RLS uses auth.uid().
       const { data, error } = await sb
         .from('services')
         .select('*')
@@ -57,7 +59,7 @@ export function useServices(initial = []) {
       if (!mounted) return;
 
       if (error) {
-        console.warn('[useServices] fetch failed, staying in demo mode.', error);
+        console.warn('[useServices] fetch failed', error);
         setIsLoading(false);
         return;
       }
@@ -66,8 +68,8 @@ export function useServices(initial = []) {
       setIsOnline(true);
       setIsLoading(false);
 
-      // Realtime subscription — porter gets new assignments instantly,
-      // chef sees status flips as porters work through them.
+      // Drop the old realtime channel (token rotated on login) and resubscribe.
+      if (channel) { channel.unsubscribe(); channel = null; }
       channel = sb
         .channel('services-changes')
         .on('postgres_changes',
@@ -86,11 +88,25 @@ export function useServices(initial = []) {
             });
           })
         .subscribe();
+    };
+
+    (async () => {
+      const sb = await getSupabase();
+      if (!sb || !mounted) return;
+      // Initial fetch (anon at boot, RLS will filter).
+      await fetchAndSubscribe();
+      // Re-fetch + re-subscribe whenever auth session flips (login/logout)
+      // so RLS picks up the new auth.uid().
+      const { data } = sb.auth.onAuthStateChange((_evt, _session) => {
+        fetchAndSubscribe();
+      });
+      authSub = data?.subscription;
     })();
 
     return () => {
       mounted = false;
       if (channel) channel.unsubscribe();
+      if (authSub) authSub.unsubscribe();
     };
   }, []);
 

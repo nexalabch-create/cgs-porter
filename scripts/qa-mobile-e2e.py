@@ -63,11 +63,15 @@ with sync_playwright() as p:
 
     # Submit login as porter (default)
     page.get_by_role("button", name="Se connecter").click()
-    page.wait_for_timeout(1500)  # spinner + transition
+    # Wait until we leave the login screen (greeting appears).
+    page.wait_for_function(
+        "() => /Bonjour[ ,]+Marc/.test(document.body.innerText)",
+        timeout=20000,
+    )
 
     # ── 2. Home (porter view) ──────────────────────────────────────────
     print("\n2) Home — porter view")
-    step("greeting 'Bonjour Marc'", lambda: expect(page.get_by_text("Bonjour Marc", exact=False).first).to_be_visible(timeout=10000))
+    step("greeting 'Bonjour, Marc'", lambda: expect(page.locator("text=/Bonjour[ ,]+Marc/")).to_be_visible(timeout=5000))
     step("date label rendered", lambda: expect(page.locator("text=/avril/").first).to_be_visible())
 
     # Try to find the next-service card with a flight + button
