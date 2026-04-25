@@ -96,7 +96,8 @@ function ChefCard({ s, onOpen, index = 0 }) {
 
 export default function ChefServicesScreen({ user, services, onOpen }) {
   const [filter, setFilter] = React.useState('all');
-  const today = new Date(2026, 3, 25);
+  // Real "now" — was hardcoded during dev. Same fix as ChefHome.jsx + Home.jsx.
+  const today = new Date();
   const dateLabel = today.toLocaleDateString('fr-CH', { weekday: 'long', day: 'numeric', month: 'long' });
 
   const counts = {
@@ -201,7 +202,11 @@ export default function ChefServicesScreen({ user, services, onOpen }) {
           </div>
         )}
         {visible.map((s, i) => (
-          <ChefCard key={s.id} s={s} index={i} onOpen={() => onOpen(s.id)}/>
+          // Cap stagger to 6 — beyond that the animation-delay (i × 55ms) pushes
+          // late cards into seconds-long delays, which iOS Safari's GPU rasterizer
+          // can render with subpixel artifacts ("haloed" text). First 6 keep the
+          // delight; the rest snap in.
+          <ChefCard key={s.id} s={s} index={Math.min(i, 6)} onOpen={() => onOpen(s.id)}/>
         ))}
       </div>
     </div>

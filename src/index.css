@@ -39,6 +39,11 @@ html, body, #root {
   font-family: var(--font-display);
   font-feature-settings: 'ss01', 'cv11';
   letter-spacing: -.02em;
+  /* Force iOS Safari to use crisp, legibility-first glyph rendering — without
+     these, big tabular numerics on the chef-services list can render with a
+     subtle halo / double-edge effect when paired with stagger animations. */
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
 #root {
@@ -55,7 +60,15 @@ input, textarea, button { font-family: inherit; }
 .scroll { scrollbar-width: none; }
 
 /* tap feedback */
-.tappable { transition: transform .12s ease, opacity .12s ease; }
+.tappable {
+  transition: transform .12s ease, opacity .12s ease;
+  /* Removes iOS Safari's 300ms double-tap-zoom delay — without this the
+     bottom tab bar and AssignSheet rows feel laggy (need 2-3 taps). */
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
 .tappable:active { transform: scale(.98); opacity: .85; }
 
 /* timer pulse */
@@ -81,6 +94,12 @@ input, textarea, button { font-family: inherit; }
 .stagger-in {
   animation: staggerIn .42s cubic-bezier(.2,.8,.2,1) both;
   animation-delay: calc(var(--stagger, 0) * 55ms);
+  /* Promote each card to its own composited layer so iOS Safari rasterizes
+     them once at full quality instead of re-painting subpixel-misaligned
+     copies during the stagger transform. Fixes the "doubled text" halo. */
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translateZ(0);
 }
 @keyframes staggerIn {
   from { opacity: 0; transform: translateY(10px) }
