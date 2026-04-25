@@ -30,24 +30,34 @@ export function AuthProvider({ children }) {
       return;
     }
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    // Fetch the profile in the background. Crucially, we DO NOT block the
+    // status='authed' transition on the profile fetch — if RLS or the
+    // network hangs, the UI would stay stuck on "Chargement…" forever.
+    // Instead, set status='authed' the moment we know the session is
+    // valid; let the profile arrive (or not) in parallel.
+    const loadProfile = (userId) => {
+      supabase.from('users').select('*').eq('id', userId).single()
+        .then(({ data, error }) => {
+          if (!mounted) return;
+          if (error) console.warn('[useAuth] profile fetch failed:', error.message);
+          setProfile(data ?? null);
+        });
+    };
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mounted) return;
       if (!session) { setStatus('guest'); return; }
       setUser(session.user);
-      const { data: profileRow } = await supabase
-        .from('users').select('*').eq('id', session.user.id).single();
-      if (!mounted) return;
-      setProfile(profileRow ?? null);
-      setStatus('authed');
+      setStatus('authed');         // unblock UI immediately
+      loadProfile(session.user.id); // background — non-blocking
     });
 
-    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return;
       if (!session) { setUser(null); setProfile(null); setStatus('guest'); return; }
       setUser(session.user);
-      const { data: profileRow } = await supabase
-        .from('users').select('*').eq('id', session.user.id).single();
-      setProfile(profileRow ?? null);
       setStatus('authed');
+      loadProfile(session.user.id);
     });
 
     return () => { mounted = false; sub.subscription.unsubscribe(); };
