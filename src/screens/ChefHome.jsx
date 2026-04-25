@@ -1,15 +1,40 @@
 import React from 'react';
 import { Icon } from '../components/Icons.jsx';
 
+// Parse "HH:MM" or "HH:MM:SS" into minutes-since-midnight.
+function hmToMin(s) {
+  if (!s) return null;
+  const [h, m] = String(s).split(':').map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
+  return h * 60 + m;
+}
+
 export default function ChefHomeScreen({
   user, services, shift, stats, team = [],
-  onAssignNext, onSelfAssignNext, onOpenPlanning,
+  onAssignNext, onOpenPlanning,
 }) {
   const today = new Date(2026, 3, 25);
   const dateLabel = today.toLocaleDateString('fr-CH', { weekday: 'long', day: 'numeric', month: 'long' });
 
   const unassigned = services.filter(s => !s.assignedPorterId);
   const next = unassigned[0] || null;
+
+  // Live "active now" computation — ticks every minute so the filter stays
+  // accurate even without new data events. Supabase realtime handles the
+  // data-update path; this tick only keeps the time-based predicate fresh.
+  const [now, setNow] = React.useState(() => new Date());
+  React.useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60 * 1000);
+    return () => clearInterval(id);
+  }, []);
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const activeTeam = team.filter(row => {
+    const s = hmToMin(row.starts_at);
+    const e = hmToMin(row.ends_at);
+    if (s == null || e == null) return false;
+    return nowMin >= s && nowMin <= e;
+  });
+  const activeUsers = activeTeam.map(r => r.user).filter(Boolean);
 
   return (
     <div className="fade-enter" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#f7f7fb', minHeight: 0 }}>
@@ -110,26 +135,98 @@ export default function ChefHomeScreen({
           )}
         </div>
 
-        {next && (
-          <div style={{
-            background: '#fff', borderRadius: 18, border: '1px solid #ececf1',
-            padding: '16px 18px', boxShadow: '0 1px 2px rgba(15,15,40,.04)',
-          }}>
+        {/* Activité de l'équipe — live stats + active porters right now.
+            Ticks every minute so "actifs maintenant" stays accurate. */}
+        <div style={{
+          background: '#fff', borderRadius: 18, border: '1px solid #ececf1',
+          padding: '16px 18px', boxShadow: '0 1px 2px rgba(15,15,40,.04)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', letterSpacing: '.14em', textTransform: 'uppercase' }}>
-              Je fais ce service moi-même
+              Activité de l'équipe
             </div>
-            <div style={{ marginTop: 8, fontSize: 14, color: 'var(--muted)', lineHeight: 1.45 }}>
-              Si aucun porteur ne peut prendre <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{next.flight} · {next.time}</span>, prenez-le directement.
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 700, color: 'var(--magenta)', letterSpacing: '.06em', textTransform: 'uppercase' }}>
+              <span style={{
+                width: 7, height: 7, borderRadius: 999, background: 'var(--magenta)',
+                animation: 'pulse 1.6s ease-in-out infinite',
+              }}/>
+              en direct
             </div>
-            <button onClick={onSelfAssignNext} className="tappable" style={{
-              marginTop: 12, width: '100%', height: 44, border: '1.5px solid var(--navy)', background: '#fff',
-              color: 'var(--navy)', borderRadius: 12,
-              fontFamily: 'inherit', fontWeight: 700, fontSize: 14, cursor: 'pointer',
-            }}>
-              M'assigner ce service
-            </button>
           </div>
-        )}
+
+          {/* Stat row: actifs / en cours / à faire */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+            {[
+              { v: activeUsers.length,            label: 'actifs',   color: 'var(--magenta)' },
+              { v: stats.active ?? 0,             label: 'en cours', color: 'var(--green)'   },
+              { v: stats.todo ?? stats.unassigned, label: 'à faire',  color: 'var(--navy)'    },
+            ].map((s, i) => (
+              <div key={i} style={{
+                background: '#fafafd', border: '1px solid #ececf1', borderRadius: 12,
+                padding: '12px 10px', textAlign: 'center',
+              }}>
+                <div style={{ fontSize: 24, fontWeight: 800, color: s.color, letterSpacing: '-.02em', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+                  {s.v}
+                </div>
+                <div style={{ marginTop: 4, fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.08em' }}>
+                  {s.label}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Active porters now — avatars row */}
+          {activeUsers.length > 0 && (
+            <>
+              <div style={{
+                marginTop: 14, fontSize: 10, fontWeight: 700, color: 'var(--muted)',
+                textTransform: 'uppercase', letterSpacing: '.08em',
+              }}>
+                En service maintenant
+              </div>
+              <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {activeUsers.slice(0, 6).map((u, i) => (
+                  <div key={u.id || i} style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    background: '#fafafd', border: '1px solid #ececf1',
+                    borderRadius: 999, padding: '4px 10px 4px 4px',
+                  }}>
+                    <div style={{
+                      width: 22, height: 22, borderRadius: 999,
+                      background: u.id === user.id ? 'var(--magenta)' : 'linear-gradient(135deg, #fce0ee, #fcb6da)',
+                      color: u.id === user.id ? '#fff' : 'var(--magenta)',
+                      fontSize: 9, fontWeight: 800,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>{u.initials || (u.first_name?.[0] || '') + (u.last_name?.[0] || '')}</div>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-.005em' }}>
+                      {u.first_name}
+                    </span>
+                  </div>
+                ))}
+                {activeUsers.length > 6 && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'var(--magenta-soft)', color: 'var(--magenta)',
+                    borderRadius: 999, padding: '4px 10px',
+                    fontSize: 12, fontWeight: 800,
+                  }}>
+                    +{activeUsers.length - 6}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {activeUsers.length === 0 && (
+            <div style={{
+              marginTop: 14, padding: '10px 12px',
+              background: '#fafafd', border: '1px solid #ececf1', borderRadius: 10,
+              fontSize: 12, color: 'var(--muted)', textAlign: 'center',
+            }}>
+              Personne en service à cette heure.
+            </div>
+          )}
+        </div>
 
         <div style={{
           background: '#fff', borderRadius: 18, border: '1px solid #ececf1',

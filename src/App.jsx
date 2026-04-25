@@ -203,6 +203,8 @@ export default function App() {
     total: services.length,
     unassigned: services.filter(s => !s.assignedPorterId).length,
     done: services.filter(s => s.status === 'done').length,
+    active: services.filter(s => s.status === 'active').length,
+    todo: services.filter(s => s.status === 'todo').length,
   };
 
   // Porter Home stats.
@@ -236,7 +238,6 @@ export default function App() {
             shift={shiftFromRow(myShift) || { code: '—', start: '—', end: '—', pause: 0 }}
             stats={chefStats}
             onAssignNext={onAssignNext}
-            onSelfAssignNext={onSelfAssignNext}
             onOpenPlanning={() => setScreen('planning')}
           />
         )}
