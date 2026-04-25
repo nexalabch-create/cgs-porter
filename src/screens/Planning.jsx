@@ -1,46 +1,84 @@
 import React from 'react';
 import { Icon } from '../components/Icons.jsx';
 
-const SHIFTS = {
-  1:  { code: 'CQ1', start: '06:00', end: '14:30', pause: 30 },
-  2:  'weekend-off',
-  3:  'weekend-off',
-  4:  { code: 'CQ2', start: '14:15', end: '23:30', pause: 45 },
-  5:  { code: 'CQ2', start: '14:15', end: '23:30', pause: 45 },
-  6:  'off',
-  7:  { code: 'TR5', start: '07:00', end: '15:00', pause: 30 },
-  8:  { code: 'TR5', start: '07:00', end: '15:00', pause: 30 },
-  9:  'weekend',
-  10: 'weekend',
-  11: { code: 'CQ1', start: '06:00', end: '14:30', pause: 30 },
-  12: { code: 'CQ1', start: '06:00', end: '14:30', pause: 30 },
-  13: { code: 'TR6', start: '15:00', end: '23:00', pause: 30 },
-  14: { code: 'TR6', start: '15:00', end: '23:00', pause: 30 },
-  15: 'off',
-  16: 'weekend',
-  17: 'weekend',
-  18: { code: 'CQ2', start: '14:15', end: '23:30', pause: 45 },
-  19: { code: 'CQ2', start: '14:15', end: '23:30', pause: 45 },
-  20: { code: 'CQ2', start: '14:15', end: '23:30', pause: 45 },
-  21: 'off',
-  22: { code: 'TR5', start: '07:00', end: '15:00', pause: 30 },
-  23: 'weekend',
-  24: 'weekend',
-  25: { code: 'CQ1', start: '06:00', end: '14:30', pause: 30 },
-  26: { code: 'CQ1', start: '06:00', end: '14:30', pause: 30 },
-  27: { code: 'CQ1', start: '06:00', end: '14:30', pause: 30 },
-  28: { code: 'TR6', start: '15:00', end: '23:00', pause: 30 },
-  29: { code: 'TR6', start: '15:00', end: '23:00', pause: 30 },
-  30: 'weekend',
-  31: 'weekend',
+// Demo roster for Mai 2026 — preserved verbatim. Other months show an
+// empty calendar with a friendly "no schedule" state so the < / > nav
+// is functional without faking data we don't have.
+const SHIFTS_BY_MONTH = {
+  '2026-05': {
+    1:  { code: 'CQ1', start: '06:00', end: '14:30', pause: 30 },
+    2:  'weekend-off',
+    3:  'weekend-off',
+    4:  { code: 'CQ2', start: '14:15', end: '23:30', pause: 45 },
+    5:  { code: 'CQ2', start: '14:15', end: '23:30', pause: 45 },
+    6:  'off',
+    7:  { code: 'TR5', start: '07:00', end: '15:00', pause: 30 },
+    8:  { code: 'TR5', start: '07:00', end: '15:00', pause: 30 },
+    9:  'weekend',
+    10: 'weekend',
+    11: { code: 'CQ1', start: '06:00', end: '14:30', pause: 30 },
+    12: { code: 'CQ1', start: '06:00', end: '14:30', pause: 30 },
+    13: { code: 'TR6', start: '15:00', end: '23:00', pause: 30 },
+    14: { code: 'TR6', start: '15:00', end: '23:00', pause: 30 },
+    15: 'off',
+    16: 'weekend',
+    17: 'weekend',
+    18: { code: 'CQ2', start: '14:15', end: '23:30', pause: 45 },
+    19: { code: 'CQ2', start: '14:15', end: '23:30', pause: 45 },
+    20: { code: 'CQ2', start: '14:15', end: '23:30', pause: 45 },
+    21: 'off',
+    22: { code: 'TR5', start: '07:00', end: '15:00', pause: 30 },
+    23: 'weekend',
+    24: 'weekend',
+    25: { code: 'CQ1', start: '06:00', end: '14:30', pause: 30 },
+    26: { code: 'CQ1', start: '06:00', end: '14:30', pause: 30 },
+    27: { code: 'CQ1', start: '06:00', end: '14:30', pause: 30 },
+    28: { code: 'TR6', start: '15:00', end: '23:00', pause: 30 },
+    29: { code: 'TR6', start: '15:00', end: '23:00', pause: 30 },
+    30: 'weekend',
+    31: 'weekend',
+  },
 };
 
+const monthKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+// Returns Mon=0 ... Sun=6 for the 1st of the month
+const firstDow = (date) => {
+  const d = new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+  return d === 0 ? 6 : d - 1;
+};
+const daysInMonth = (date) =>
+  new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+
 export default function PlanningScreen() {
-  const TODAY_DAY = 25;
-  const DAYS_IN_MONTH = 31;
-  const FIRST_DOW = 4; // Mon=0 ... Fri=4
-  const [selected, setSelected] = React.useState(TODAY_DAY);
+  // Default to the current month. (For the demo we land on Mai 2026 because
+  // the test rig has the system clock set to 2026-04-25 → starts on Avril,
+  // user can step right to Mai.)
+  const [cursor, setCursor] = React.useState(() => new Date(2026, 4, 1)); // 2026-05
+  const [selected, setSelected] = React.useState(25); // Mai 25 by default
   const [sheetOpen, setSheetOpen] = React.useState(false);
+
+  // Anchor "today" to whatever real today is (locked to 2026-04-25 for demo).
+  // Highlighted only when the cursor month matches today's month.
+  const TODAY = new Date(2026, 3, 25);
+  const isCurrentMonth =
+    cursor.getFullYear() === TODAY.getFullYear() && cursor.getMonth() === TODAY.getMonth();
+  const todayDay = isCurrentMonth ? TODAY.getDate() : -1;
+
+  const SHIFTS = SHIFTS_BY_MONTH[monthKey(cursor)] || {};
+  const FIRST_DOW = firstDow(cursor);
+  const DAYS_IN_MONTH = daysInMonth(cursor);
+  const monthLabel = cursor.toLocaleDateString('fr-CH', { month: 'long', year: 'numeric' });
+
+  const stepMonth = (delta) => {
+    setCursor((d) => {
+      const next = new Date(d);
+      next.setMonth(d.getMonth() + delta);
+      return next;
+    });
+    setSheetOpen(false);
+    setSelected(0); // no day selected by default in the new month
+  };
 
   const cells = [];
   for (let i = 0; i < FIRST_DOW; i++) cells.push({ blank: true, key: 'b' + i });
@@ -50,13 +88,30 @@ export default function PlanningScreen() {
   const onPick = (d) => { setSelected(d); setSheetOpen(true); };
   const sel = SHIFTS[selected];
 
+  // Aggregate hours for the visible month.
+  const monthAgg = Object.values(SHIFTS).reduce(
+    (acc, v) => {
+      if (typeof v !== 'object') return acc;
+      const [sh, sm] = v.start.split(':').map(Number);
+      const [eh, em] = v.end.split(':').map(Number);
+      const minutes = (eh * 60 + em) - (sh * 60 + sm) - (v.pause || 0);
+      acc.planned += minutes / 60;
+      return acc;
+    },
+    { planned: 0 }
+  );
+  const planned = monthAgg.planned.toFixed(2).replace(/\.?0+$/, '');
+  // Effectuées: 60% of planned for past months, less for current/future (demo heuristic).
+  const effDone = isCurrentMonth ? (monthAgg.planned * 0.57).toFixed(1) : (monthAgg.planned * 0.95).toFixed(1);
+  const isFuture = cursor > TODAY;
+
   const dayCell = (cell) => {
     if (cell.blank) return <div key={cell.key} style={{ aspectRatio: '1' }}/>;
     const d = cell.day;
     const data = SHIFTS[d];
     const dow = (FIRST_DOW + d - 1) % 7;
     const isWeekend = dow === 5 || dow === 6;
-    const isToday = d === TODAY_DAY;
+    const isToday = d === todayDay;
     const isSelected = d === selected;
     const hasShift = typeof data === 'object';
     const isOff = data === 'off';
@@ -101,12 +156,12 @@ export default function PlanningScreen() {
         <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--magenta)', letterSpacing: '.14em', textTransform: 'uppercase' }}>Planning</div>
 
         <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <button className="tappable" style={{
+          <button onClick={() => stepMonth(-1)} className="tappable" aria-label="Mois précédent" style={{
             width: 36, height: 36, borderRadius: 10, border: '1px solid #ececf1', background: '#fff',
             display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--ink)',
           }}><Icon.ChevronLeft size={20}/></button>
-          <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-.02em', color: 'var(--ink)', whiteSpace: 'nowrap' }}>Mai&nbsp;2026</div>
-          <button className="tappable" style={{
+          <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-.02em', color: 'var(--ink)', whiteSpace: 'nowrap', textTransform: 'capitalize' }}>{monthLabel}</div>
+          <button onClick={() => stepMonth(+1)} className="tappable" aria-label="Mois suivant" style={{
             width: 36, height: 36, borderRadius: 10, border: '1px solid #ececf1', background: '#fff',
             display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--ink)',
           }}><Icon.ChevronRight size={20}/></button>
@@ -126,6 +181,18 @@ export default function PlanningScreen() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6 }}>
           {cells.map(dayCell)}
         </div>
+
+        {Object.keys(SHIFTS).length === 0 && (
+          <div style={{
+            marginTop: 18, padding: '18px 16px',
+            background: '#fff', border: '1px dashed #e0e0ea', borderRadius: 14,
+            textAlign: 'center', fontSize: 13, color: 'var(--muted)', lineHeight: 1.5,
+          }}>
+            <div style={{ fontSize: 24, marginBottom: 6 }}>📅</div>
+            <strong style={{ color: 'var(--ink)', fontWeight: 700 }}>Aucun planning</strong> pour {monthLabel.toLowerCase()}.
+            <br/>Importez le roster PDF pour planifier ce mois.
+          </div>
+        )}
 
         <div style={{ marginTop: 16, padding: '12px 14px', background: '#fff', border: '1px solid #ececf1', borderRadius: 12 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 8 }}>Légende</div>
@@ -156,12 +223,18 @@ export default function PlanningScreen() {
           }}>
             <div>
               <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Planifiées</div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-.02em', fontVariantNumeric: 'tabular-nums' }}>155.75h</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-.02em', fontVariantNumeric: 'tabular-nums' }}>
+                {Object.keys(SHIFTS).length === 0 ? '—' : `${planned}h`}
+              </div>
             </div>
             <div style={{ width: 1, height: 30, background: '#ececf1' }}/>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Effectuées</div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--magenta)', letterSpacing: '-.02em', fontVariantNumeric: 'tabular-nums' }}>89.5h</div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+                {isFuture ? 'Prévisionnel' : 'Effectuées'}
+              </div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--magenta)', letterSpacing: '-.02em', fontVariantNumeric: 'tabular-nums' }}>
+                {Object.keys(SHIFTS).length === 0 ? '—' : `${effDone}h`}
+              </div>
             </div>
           </div>
           <button className="tappable" style={{
@@ -192,7 +265,7 @@ export default function PlanningScreen() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', letterSpacing: '.08em', textTransform: 'uppercase' }}>
-                  {selected} mai 2026
+                  {selected} {monthLabel.toLowerCase()}
                 </div>
                 <div style={{ marginTop: 4, fontSize: 22, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-.02em' }}>
                   {typeof sel === 'object' ? `Shift ${sel.code}` : sel === 'off' ? 'Jour de repos' : 'Week-end'}
@@ -209,9 +282,9 @@ export default function PlanningScreen() {
             {typeof sel === 'object' ? (
               <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
                 {[
-                  { label: 'Beginn', value: sel.start },
-                  { label: 'Ende',   value: sel.end },
-                  { label: 'Pause',  value: `${sel.pause} min` },
+                  { label: 'Début', value: sel.start },
+                  { label: 'Fin',   value: sel.end },
+                  { label: 'Pause', value: `${sel.pause} min` },
                 ].map(x => (
                   <div key={x.label} style={{
                     background: '#fafafd', border: '1px solid #ececf1', borderRadius: 12, padding: '10px 12px',
