@@ -1,17 +1,40 @@
 import React from 'react';
 import { PORTERS } from '../data/porters.js';
 
+// Same gradient cycler used in ChefHome — keeps the brand language unified.
+const AVATAR_GRADIENTS = [
+  'linear-gradient(135deg, #fcecf4 0%, #f8a8d4 100%)',
+  'linear-gradient(135deg, #f5e6f8 0%, #d896e8 100%)',
+  'linear-gradient(135deg, #fef0f5 0%, #f7b3c9 100%)',
+  'linear-gradient(135deg, #f9e6ed 0%, #e89bbf 100%)',
+];
+function hashIdx(s, n) {
+  if (!s) return 0;
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h) % n;
+}
+
 export default function AssignSheet({ open, service, onClose, onAssign }) {
   const [query, setQuery] = React.useState('');
   React.useEffect(() => { if (open) setQuery(''); }, [open]);
 
   if (!open) return null;
 
-  const porters = PORTERS.filter(p => p.role === 'porter');
+  // Both porters and chefs are assignable — chefs regularly take services
+  // themselves when the team is short-handed. Sort: chefs first (so the
+  // user can quickly pick themselves or a co-chef), then porters by name.
+  const all = PORTERS.filter(p => p.role === 'porter' || p.role === 'chef');
   const q = query.trim().toLowerCase();
-  const filtered = q
-    ? porters.filter(p => `${p.firstName} ${p.lastName}`.toLowerCase().includes(q))
-    : porters;
+  const filtered = (q
+    ? all.filter(p => `${p.firstName} ${p.lastName}`.toLowerCase().includes(q))
+    : all
+  ).sort((a, b) => {
+    if (a.role !== b.role) return a.role === 'chef' ? -1 : 1;
+    return a.firstName.localeCompare(b.firstName);
+  });
+
+  const chefCount = filtered.filter(p => p.role === 'chef').length;
 
   return (
     <>
@@ -29,7 +52,7 @@ export default function AssignSheet({ open, service, onClose, onAssign }) {
         <div style={{ width: 44, height: 5, background: '#e0e0ea', borderRadius: 999, margin: '10px auto 12px' }}/>
 
         <div style={{ padding: '0 20px 12px' }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--magenta)', letterSpacing: '.14em', textTransform: 'uppercase' }}>Assigner un porteur</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--magenta)', letterSpacing: '.14em', textTransform: 'uppercase' }}>Assigner un porteur</div>
           {service && (
             <div style={{ marginTop: 4, fontSize: 18, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-.02em' }}>
               {service.flight} · {service.time} <span style={{ fontWeight: 500, color: 'var(--muted)' }}>· {service.client}</span>
@@ -38,7 +61,7 @@ export default function AssignSheet({ open, service, onClose, onAssign }) {
 
           <input
             type="search" value={query} onChange={(e) => setQuery(e.target.value)}
-            placeholder="Rechercher un porteur…"
+            placeholder="Rechercher un porteur ou chef…"
             style={{
               marginTop: 12, width: '100%', height: 42, padding: '0 14px',
               fontFamily: 'inherit', fontSize: 14, color: 'var(--ink)',
@@ -53,32 +76,75 @@ export default function AssignSheet({ open, service, onClose, onAssign }) {
         <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '0 16px 16px' }}>
           {filtered.length === 0 && (
             <div style={{ padding: '32px 8px', textAlign: 'center', fontSize: 13, color: 'var(--muted)' }}>
-              Aucun porteur trouvé.
+              Aucun résultat.
             </div>
           )}
-          {filtered.map(p => (
-            <button key={p.id} onClick={() => onAssign(p.id)} className="tappable" style={{
-              width: '100%', display: 'flex', alignItems: 'center', gap: 12,
-              padding: '12px', marginBottom: 8, border: '1px solid #ececf1', borderRadius: 14,
-              background: '#fff', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
-            }}>
-              <div style={{
-                width: 40, height: 40, borderRadius: 999,
-                background: 'linear-gradient(135deg, #fce0ee, #fcb6da)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontWeight: 800, color: 'var(--magenta)', fontSize: 14, flexShrink: 0,
-              }}>{p.initials}</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-.005em' }}>
-                  {p.firstName} {p.lastName}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--muted)' }}>Porteur · GVA</div>
-              </div>
-              <svg width="8" height="14" viewBox="0 0 8 14" style={{ flexShrink: 0, color: '#cfcfdc' }}>
-                <path d="M1 1l6 6-6 6" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-          ))}
+          {filtered.map((p, i) => {
+            const isChef = p.role === 'chef';
+            // Section divider before the first porter (after all chefs).
+            const showDivider = i === chefCount && chefCount > 0 && !q;
+            return (
+              <React.Fragment key={p.id}>
+                {showDivider && (
+                  <div style={{
+                    margin: '14px 4px 8px', fontSize: 10, fontWeight: 700,
+                    color: 'var(--muted)', letterSpacing: '.1em', textTransform: 'uppercase',
+                  }}>
+                    Porteurs ({filtered.length - chefCount})
+                  </div>
+                )}
+                {i === 0 && chefCount > 0 && !q && (
+                  <div style={{
+                    margin: '4px 4px 8px', fontSize: 10, fontWeight: 700,
+                    color: 'var(--magenta)', letterSpacing: '.1em', textTransform: 'uppercase',
+                  }}>
+                    Chefs d'équipe ({chefCount})
+                  </div>
+                )}
+                <button onClick={() => onAssign(p.id)} className="tappable" style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '12px', marginBottom: 8,
+                  border: isChef ? '1px solid #fbd0e2' : '1px solid #ececf1',
+                  borderRadius: 14,
+                  background: isChef
+                    ? 'linear-gradient(135deg, #fff5fa 0%, #fde6f0 100%)'
+                    : '#fff',
+                  cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,.7)',
+                }}>
+                  <div style={{
+                    width: 40, height: 40, borderRadius: 999,
+                    background: AVATAR_GRADIENTS[hashIdx(p.id, AVATAR_GRADIENTS.length)],
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontWeight: 800, color: 'var(--magenta)', fontSize: 14, flexShrink: 0,
+                    border: isChef ? '1.5px solid var(--magenta)' : 'none',
+                  }}>{p.initials}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      fontSize: 15, fontWeight: 700, color: 'var(--ink)',
+                      letterSpacing: '-.005em',
+                      display: 'flex', alignItems: 'center', gap: 6,
+                    }}>
+                      {p.firstName} {p.lastName}
+                      {isChef && (
+                        <span style={{
+                          fontSize: 9, fontWeight: 800, color: '#fff',
+                          background: 'var(--magenta)',
+                          padding: '2px 6px', borderRadius: 5, letterSpacing: '.04em',
+                        }}>CHEF</span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                      {isChef ? "Chef d'équipe · GVA" : 'Porteur · GVA'}
+                    </div>
+                  </div>
+                  <svg width="8" height="14" viewBox="0 0 8 14" style={{ flexShrink: 0, color: '#cfcfdc' }}>
+                    <path d="M1 1l6 6-6 6" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              </React.Fragment>
+            );
+          })}
         </div>
 
         <div style={{ padding: '8px 20px 16px', borderTop: '1px solid #ececf1' }}>

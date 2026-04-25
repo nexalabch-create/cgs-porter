@@ -1,6 +1,13 @@
 // Porter directory. In production this comes from Supabase `users` table.
+// 6 chefs (matin: Aftak, Khalid, Safet · soir: Mate, Andrei, Dercio) + 20 porters.
+// Chefs can also be assigned to services — they regularly do them too.
 export const PORTERS = [
-  { id: 'mt',  firstName: 'Mate',     lastName: 'Torgvaidze', role: 'chef',   initials: 'MT' },
+  { id: 'mt',  firstName: 'Mate',     lastName: 'Torgvaidze',    role: 'chef',   initials: 'MT' },
+  { id: 'c2',  firstName: 'Andrei',   lastName: 'Serban',        role: 'chef',   initials: 'AS' },
+  { id: 'c3',  firstName: 'Dercio',   lastName: 'Veloso',        role: 'chef',   initials: 'DV' },
+  { id: 'c4',  firstName: 'Aftak',    lastName: 'Dadi',          role: 'chef',   initials: 'AD' },
+  { id: 'c5',  firstName: 'Khalid',   lastName: 'El Ghazouani',  role: 'chef',   initials: 'KE' },
+  { id: 'c6',  firstName: 'Safet',    lastName: 'Filipova',      role: 'chef',   initials: 'SF' },
   { id: 'p2',  firstName: 'Marc',     lastName: 'Dubois',     role: 'porter', initials: 'MD' },
   { id: 'p3',  firstName: 'Julien',   lastName: 'Moreau',     role: 'porter', initials: 'JM' },
   { id: 'p4',  firstName: 'Léa',      lastName: 'Bertrand',   role: 'porter', initials: 'LB' },

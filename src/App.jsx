@@ -8,6 +8,7 @@ import ProfileScreen from './screens/Profile.jsx';
 import ChefHomeScreen from './screens/ChefHome.jsx';
 import ChefServicesScreen from './screens/ChefServices.jsx';
 import AssignSheet from './components/AssignSheet.jsx';
+import Toast from './components/Toast.jsx';
 import { findPorter } from './data/porters.js';
 import { useServices } from './hooks/useServices.js';
 import { useTodayPlanning } from './hooks/useTodayPlanning.js';
@@ -125,6 +126,7 @@ export default function App() {
   const { team: todayTeam, myShift } = useTodayPlanning(user?.id);
   const [activeId, setActiveId] = React.useState(null);
   const [assignTargetId, setAssignTargetId] = React.useState(null);
+  const [toast, setToast] = React.useState(null);
 
   // Sign in via real Supabase Auth so RLS policies work (auth.uid() is set).
   // RLS on services requires authenticated session — without it the porter
@@ -187,11 +189,25 @@ export default function App() {
   const openAssignSheet = (serviceId) => setAssignTargetId(serviceId);
   const closeAssignSheet = () => setAssignTargetId(null);
   const onPickPorter = (porterId) => {
-    if (assignTargetId) assignPorter(assignTargetId, porterId);
+    if (assignTargetId) {
+      const svc = services.find((s) => s.id === assignTargetId);
+      const p = findPorter(porterId);
+      assignPorter(assignTargetId, porterId);
+      if (svc && p) {
+        const isMe = porterId === user?.id;
+        setToast(isMe
+          ? `${svc.flight} · ${svc.time} — vous l'avez pris ✨`
+          : `${svc.flight} · ${svc.time} assigné à ${p.firstName} ${p.lastName}`);
+      }
+    }
     setAssignTargetId(null);
   };
 
-  const selfAssign = (serviceId) => assignPorter(serviceId, user.id);
+  const selfAssign = (serviceId) => {
+    const svc = services.find((s) => s.id === serviceId);
+    assignPorter(serviceId, user.id);
+    if (svc) setToast(`${svc.flight} · ${svc.time} — vous l'avez pris ✨`);
+  };
 
   // Chef "next unassigned" shortcuts on Home: open assign sheet or take it.
   const nextUnassigned = services.find(s => !s.assignedPorterId);
@@ -297,6 +313,8 @@ export default function App() {
         onClose={closeAssignSheet}
         onAssign={onPickPorter}
       />
+
+      <Toast message={toast} onDismiss={() => setToast(null)} />
 
       {/* Demo-mode flag — visible only when Supabase env vars aren't set.
           Lets QA + dev know that mutations stay in memory. */}
