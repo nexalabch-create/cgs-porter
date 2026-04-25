@@ -10,6 +10,7 @@ import ChefServicesScreen from './screens/ChefServices.jsx';
 import AssignSheet from './components/AssignSheet.jsx';
 import { findPorter } from './data/porters.js';
 import { useServices } from './hooks/useServices.js';
+import { useTodayPlanning } from './hooks/useTodayPlanning.js';
 import { getSupabase, isSupabaseConfigured } from './lib/supabase.js';
 
 const DEMO_EMAIL = {
@@ -17,6 +18,14 @@ const DEMO_EMAIL = {
   porter: 'marc.dubois@cgs-ltd.com',
 };
 const DEMO_PASSWORD = 'CgsPorter2026!';
+
+// Translate a shifts-table row into the shape expected by the home screens.
+const shiftFromRow = (row) => row ? ({
+  code: row.code,
+  start: row.starts_at?.slice(0, 5),
+  end:   row.ends_at?.slice(0, 5),
+  pause: row.pause_minutes,
+}) : null;
 
 // Today's services. assignedPorterId === null → unassigned (chef must dispatch).
 // In production this is `services` from Supabase, kept in sync via a realtime subscription.
@@ -113,6 +122,7 @@ export default function App() {
   // useServices switches automatically: real Supabase data + realtime sub when
   // configured, in-memory SAMPLE otherwise.
   const { services, assignPorter, updateService, isOnline } = useServices(SAMPLE);
+  const { team: todayTeam, myShift } = useTodayPlanning(user?.id);
   const [activeId, setActiveId] = React.useState(null);
   const [assignTargetId, setAssignTargetId] = React.useState(null);
 
@@ -222,7 +232,8 @@ export default function App() {
           <ChefHomeScreen
             user={user}
             services={services}
-            shift={{ code: 'CQ2', start: '14:15', end: '23:30', pause: 45 }}
+            team={todayTeam}
+            shift={shiftFromRow(myShift) || { code: '—', start: '—', end: '—', pause: 0 }}
             stats={chefStats}
             onAssignNext={onAssignNext}
             onSelfAssignNext={onSelfAssignNext}
@@ -233,7 +244,7 @@ export default function App() {
           <HomeScreen
             firstName={user.firstName}
             nextService={porterNext}
-            shift={{ code: 'CQ2', start: '14:15', end: '23:30', pause: 45 }}
+            shift={shiftFromRow(myShift) || { code: '—', start: '—', end: '—', pause: 0 }}
             stats={porterStats}
             onOpenService={() => { setActiveId(porterNext.id); setScreen('detail'); }}
             onOpenPlanning={() => setScreen('planning')}

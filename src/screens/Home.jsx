@@ -113,16 +113,18 @@ export default function HomeScreen({ firstName = 'Mate', nextService, shift, sta
             </div>
           </div>
 
-          <div style={{
-            marginTop: 12, padding: '10px 12px', borderRadius: 10,
-            background: '#fafafd', border: '1px solid #ececf1',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--muted)', fontWeight: 600 }}>
-              <Icon.Clock size={14}/> Pause
+          {shift.pause > 0 && (
+            <div style={{
+              marginTop: 12, padding: '10px 12px', borderRadius: 10,
+              background: '#fafafd', border: '1px solid #ececf1',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--muted)', fontWeight: 600 }}>
+                <Icon.Clock size={14}/> Pause
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>{shift.pause} min</div>
             </div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>{shift.pause} min</div>
-          </div>
+          )}
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>

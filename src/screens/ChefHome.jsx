@@ -2,7 +2,7 @@ import React from 'react';
 import { Icon } from '../components/Icons.jsx';
 
 export default function ChefHomeScreen({
-  user, services, shift, stats,
+  user, services, shift, stats, team = [],
   onAssignNext, onSelfAssignNext, onOpenPlanning,
 }) {
   const today = new Date(2026, 3, 25);
@@ -156,7 +156,78 @@ export default function ChefHomeScreen({
               <div style={{ marginTop: 2, fontSize: 22, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-.02em', fontVariantNumeric: 'tabular-nums' }}>{shift.end}</div>
             </div>
           </div>
+          {shift.pause > 0 && (
+            <div style={{
+              marginTop: 12, padding: '10px 12px', borderRadius: 10,
+              background: '#fafafd', border: '1px solid #ececf1',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--muted)', fontWeight: 600 }}>
+                <Icon.Clock size={14}/> Pause
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>{shift.pause} min</div>
+            </div>
+          )}
         </div>
+
+        {/* Mon équipe aujourd'hui — list of porters working today with their shift codes + breaks */}
+        {team.length > 0 && (
+          <div style={{
+            background: '#fff', borderRadius: 18, border: '1px solid #ececf1',
+            padding: '16px 18px 6px', boxShadow: '0 1px 2px rgba(15,15,40,.04)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', letterSpacing: '.14em', textTransform: 'uppercase' }}>
+                Mon équipe aujourd'hui
+              </div>
+              <span style={{
+                background: 'var(--magenta-soft)', color: 'var(--magenta)',
+                fontSize: 11, fontWeight: 800, padding: '3px 8px', borderRadius: 999,
+                fontVariantNumeric: 'tabular-nums',
+              }}>
+                {team.length} {team.length === 1 ? 'personne' : 'personnes'}
+              </span>
+            </div>
+            {team.map((row, i) => {
+              const isMe = row.user_id === user.id;
+              const u = row.user;
+              return (
+                <div key={row.id || i} style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '10px 0', borderTop: i === 0 ? 'none' : '1px solid #f1f1f5',
+                }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 999,
+                    background: isMe ? 'var(--magenta)' : 'linear-gradient(135deg, #fce0ee, #fcb6da)',
+                    color: isMe ? '#fff' : 'var(--magenta)',
+                    fontSize: 12, fontWeight: 800,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  }}>{u?.initials || '??'}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-.005em', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {u ? `${u.first_name} ${u.last_name}` : '— inconnu —'}
+                      {isMe && (
+                        <span style={{
+                          fontSize: 9, fontWeight: 800, color: '#fff', background: 'var(--magenta)',
+                          padding: '1px 5px', borderRadius: 4, letterSpacing: '.04em',
+                        }}>VOUS</span>
+                      )}
+                    </div>
+                    <div style={{ marginTop: 1, display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                      <span style={{
+                        background: '#eaeaf3', color: 'var(--navy)', fontWeight: 800,
+                        padding: '1px 5px', borderRadius: 4, letterSpacing: '.04em',
+                      }}>{row.code}</span>
+                      <span>{row.starts_at?.slice(0, 5)} → {row.ends_at?.slice(0, 5)}</span>
+                      <span>·</span>
+                      <span>pause {row.pause_minutes}'</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <button onClick={onOpenPlanning} className="tappable" style={{
