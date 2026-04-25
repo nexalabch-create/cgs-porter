@@ -140,20 +140,28 @@ with sync_playwright() as p:
 
     # ── 5. Login as chef ───────────────────────────────────────────────
     print("\n5) Login (chef mode)")
-    page.get_by_role("button", name="Chef d'équipe").click()
+    # The label uses a curly apostrophe (U+2019) — use a regex to match either.
+    import re as _re
+    page.get_by_role("button", name=_re.compile(r"Chef d.{1,2}équipe")).click()
     page.wait_for_timeout(300)
     page.get_by_role("button", name="Se connecter").click()
-    page.wait_for_timeout(1500)
+    # Wait for chef home greeting.
+    page.wait_for_function(
+        "() => /Bonjour\\s+Mate/.test(document.body.innerText)",
+        timeout=20000,
+    )
 
     step("Chef home: 'Services à assigner'", lambda: expect(page.get_by_text("Services à assigner", exact=False).first).to_be_visible(timeout=10000))
-    step("'Bonjour Mate' greeting", lambda: expect(page.get_by_text("Bonjour Mate", exact=False).first).to_be_visible())
+    step("'Bonjour Mate' greeting", lambda: expect(page.locator("text=/Bonjour\\s+Mate/")).to_be_visible())
     shot(page, "06-chef-home.png")
 
-    # Try AssignSheet
+    # Try AssignSheet — click the magenta "Assigner un porteur" CTA button.
     try:
-        page.get_by_role("button", name="Assigner un porteur").click()
+        # The button on the home is the one with chevron, not the section header.
+        page.get_by_role("button").filter(has_text="Assigner un porteur").first.click()
         page.wait_for_timeout(800)
-        step("AssignSheet opens", lambda: expect(page.get_by_text("Rechercher un porteur", exact=False).first).to_be_visible())
+        step("AssignSheet opens (search input visible)",
+             lambda: expect(page.get_by_placeholder(_re.compile(r"Rechercher")).first).to_be_visible())
         shot(page, "07-assign-sheet.png")
         page.get_by_role("button", name="Annuler").click()
         page.wait_for_timeout(400)
