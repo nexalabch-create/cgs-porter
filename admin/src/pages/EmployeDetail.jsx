@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Pencil } from 'lucide-react';
 import PageHeader from '../components/PageHeader.jsx';
 import MetricCard from '../components/MetricCard.jsx';
+import EmployeeModal from '../components/EmployeeModal.jsx';
 import { useServicesData } from '../hooks/useServices.js';
 import {
   formatCHF, formatDate, formatTime, totalChf,
@@ -12,8 +13,13 @@ import {
 export default function EmployeDetail() {
   const { id } = useParams();
   const { porters, services, isLoading } = useServicesData();
+  const [editOpen, setEditOpen] = React.useState(false);
+  const [localOverride, setLocalOverride] = React.useState(null);
 
-  const employee = porters.find(p => p.id === id);
+  const fetchedEmployee = porters.find(p => p.id === id);
+  // After save, override locally so the page reflects the change without
+  // waiting for the next useServicesData() refetch.
+  const employee = localOverride && localOverride.id === id ? localOverride : fetchedEmployee;
   const mine = services.filter(s => s.assigned_porter_id === id);
   const today = new Date('2026-04-25T12:00:00+02:00');
   const month = mine.filter(s => {
@@ -53,8 +59,19 @@ export default function EmployeDetail() {
         title={`${employee.first_name} ${employee.last_name}`}
         subtitle={`${employee.role === 'chef' ? "Chef d'équipe" : 'Porteur'} · ${employee.email}`}>
         <Link to="/employes" className="btn-secondary"><ArrowLeft size={16}/> Retour</Link>
-        <button className="btn-primary"><Pencil size={16}/> Modifier</button>
+        <button onClick={() => setEditOpen(true)} className="btn-primary">
+          <Pencil size={16}/> Modifier
+        </button>
       </PageHeader>
+
+      <EmployeeModal
+        open={editOpen}
+        employee={employee}
+        onClose={() => setEditOpen(false)}
+        onSaved={(updated) => {
+          setLocalOverride(updated);
+        }}
+      />
 
       <div className="px-8 py-6 space-y-6">
         <div className="flex items-center gap-5">

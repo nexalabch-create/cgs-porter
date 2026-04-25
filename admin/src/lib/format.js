@@ -1,4 +1,5 @@
 // Shared formatters used across pages.
+import { totalChfFor as priceFor } from './pricing.js';
 
 const CHF = new Intl.NumberFormat('fr-CH', {
   style: 'currency', currency: 'CHF', maximumFractionDigits: 0,
@@ -15,8 +16,8 @@ export const formatTime = (iso) =>
 export const formatDay = (iso) =>
   new Date(iso).toLocaleDateString('fr-CH', { weekday: 'short', day: 'numeric', month: 'short' });
 
-export const totalChf = (s) =>
-  Number(s.base_price_chf ?? 25) + (s.bags ?? 0) * Number(s.per_bag_price_chf ?? 12);
+// Tier-based, per-source. Source-of-truth lives in admin/src/lib/pricing.js.
+export const totalChf = (s) => priceFor(s);
 
 export const SOURCE_LABEL = {
   web:        'Web',

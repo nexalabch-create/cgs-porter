@@ -15,7 +15,8 @@
       "Bash(curl -s http://localhost:5173/src/hooks/useServices.js)",
       "Bash(node scripts/run-sql.mjs -)",
       "Bash(node scripts/run-sql.mjs supabase/migrations/0002_admin_extensions.sql)",
-      "Bash(node scripts/seed-supabase.mjs)"
+      "Bash(node scripts/seed-supabase.mjs)",
+      "Bash(node scripts/run-sql.mjs supabase/migrations/0006_per_source_tariffs.sql)"
     ]
   }
 }

@@ -1,25 +1,31 @@
 import React from 'react';
-import { X } from 'lucide-react';
+import { X, Plane, ArrowRight, ArrowLeft } from 'lucide-react';
+import { totalChfFor, priceBreakdown } from '../lib/pricing.js';
+
+// Three primary categories the chef thinks in. Web + GUICHET are edge cases
+// hidden under "Autres".
+const PRIMARY_SOURCES = [
+  { v: 'prive',     label: 'Privé',     hint: '25 CHF + 5 CHF/bag.' },
+  { v: 'dnata',     label: 'DNATA',     hint: '15 CHF + 4 CHF/bag.' },
+  { v: 'swissport', label: 'Swissport', hint: '15 CHF + 4 CHF/bag.' },
+];
+const ADVANCED_SOURCES = [
+  { v: 'web',     label: 'Web' },
+  { v: 'guichet', label: 'Guichet' },
+];
 
 const FLOW_OPTIONS = [
-  { v: 'arrivee', label: 'Arrivée' },
-  { v: 'depart',  label: 'Départ' },
-];
-const SOURCE_OPTIONS = [
-  { v: 'web',       label: 'Web' },
-  { v: 'dnata',     label: 'DNATA' },
-  { v: 'swissport', label: 'Swissport' },
-  { v: 'prive',     label: 'Privé' },
+  { v: 'arrivee', label: 'Arrivée', icon: ArrowLeft },
+  { v: 'depart',  label: 'Départ',  icon: ArrowRight },
 ];
 
 const empty = {
   flight: '', scheduled_at: '', client_name: '', client_email: '', client_phone: '',
-  meeting_point: '', bags: 1, base_price_chf: 25, per_bag_price_chf: 12,
-  agency: '', flow: 'arrivee', source: 'web', remarques: '',
+  meeting_point: '', bags: 1,
+  agency: '', flow: 'arrivee', source: 'dnata', remarques: '',
   assigned_porter_id: '', status: 'todo',
 };
 
-// scheduled_at <-> <input type="datetime-local"> conversion (no TZ in <input>).
 const toLocalInput = (iso) => {
   if (!iso) return '';
   const d = new Date(iso);
@@ -30,9 +36,11 @@ const toLocalInput = (iso) => {
 export default function ServiceModal({ open, initial, porters, onClose, onSave }) {
   const [form, setForm] = React.useState(empty);
   const [saving, setSaving] = React.useState(false);
+  const [showAdvanced, setShowAdvanced] = React.useState(false);
 
   React.useEffect(() => {
     if (!open) return;
+    setShowAdvanced(false);
     setForm(initial
       ? { ...empty, ...initial, scheduled_at: toLocalInput(initial.scheduled_at) }
       : { ...empty, scheduled_at: toLocalInput(new Date().toISOString()) });
@@ -48,8 +56,10 @@ export default function ServiceModal({ open, initial, porters, onClose, onSave }
     const payload = {
       ...form,
       bags: Number(form.bags) || 1,
-      base_price_chf: Number(form.base_price_chf) || 0,
-      per_bag_price_chf: Number(form.per_bag_price_chf) || 0,
+      // Legacy columns kept in sync with the chosen source so existing rows
+      // still read sensibly even if they're queried directly.
+      base_price_chf: form.source === 'prive' || form.source === 'web' || form.source === 'guichet' ? 25 : 15,
+      per_bag_price_chf: form.source === 'prive' || form.source === 'web' || form.source === 'guichet' ? 5 : 4,
       assigned_porter_id: form.assigned_porter_id || null,
       scheduled_at: new Date(form.scheduled_at).toISOString(),
     };
@@ -58,9 +68,11 @@ export default function ServiceModal({ open, initial, porters, onClose, onSave }
     onClose();
   };
 
+  const total = totalChfFor({ source: form.source, bags: Number(form.bags) || 0 });
+  const breakdown = priceBreakdown({ source: form.source, bags: Number(form.bags) || 0 });
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-ink/30 backdrop-blur-sm"
-         onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-ink/30 backdrop-blur-sm" onClick={onClose}>
       <form
         onClick={(e) => e.stopPropagation()}
         onSubmit={submit}
@@ -74,35 +86,87 @@ export default function ServiceModal({ open, initial, porters, onClose, onSave }
           </button>
         </div>
 
-        <div className="px-6 py-5 overflow-y-auto space-y-4">
+        <div className="px-6 py-5 overflow-y-auto space-y-5">
+          {/* Source segmented control — top of the form */}
+          <div>
+            <span className="label">Source</span>
+            <div className="mt-1.5 grid grid-cols-3 gap-2">
+              {PRIMARY_SOURCES.map(s => {
+                const a = form.source === s.v;
+                return (
+                  <button
+                    key={s.v}
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, source: s.v }))}
+                    className={`h-12 px-3 rounded-lg border-2 transition flex flex-col items-center justify-center gap-0.5 ${
+                      a
+                        ? 'border-magenta bg-magenta-50 text-magenta-700'
+                        : 'border-slate-200 bg-white text-ink hover:border-magenta-200 hover:bg-magenta-50/40'
+                    }`}>
+                    <span className="font-semibold text-sm">{s.label}</span>
+                    <span className="text-[10px] font-medium text-muted">{s.hint}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {!showAdvanced ? (
+              <button
+                type="button"
+                onClick={() => setShowAdvanced(true)}
+                className="mt-2 text-xs text-muted hover:text-ink">
+                + Autres sources (Web, Guichet)
+              </button>
+            ) : (
+              <div className="mt-2 flex gap-2">
+                {ADVANCED_SOURCES.map(s => {
+                  const a = form.source === s.v;
+                  return (
+                    <button
+                      key={s.v} type="button"
+                      onClick={() => setForm(f => ({ ...f, source: s.v }))}
+                      className={`h-9 px-3 rounded-md text-xs font-semibold transition ${
+                        a ? 'bg-navy text-white' : 'bg-slate-100 text-muted hover:bg-slate-200'
+                      }`}>
+                      {s.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Direction segmented */}
+          <div>
+            <span className="label">Direction</span>
+            <div className="mt-1.5 grid grid-cols-2 gap-2 max-w-xs">
+              {FLOW_OPTIONS.map(o => {
+                const a = form.flow === o.v;
+                const Ico = o.icon;
+                return (
+                  <button
+                    key={o.v}
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, flow: o.v }))}
+                    className={`h-10 px-3 rounded-lg border-2 transition flex items-center justify-center gap-2 text-sm font-semibold ${
+                      a
+                        ? (o.v === 'arrivee' ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-amber-500 bg-amber-50 text-amber-700')
+                        : 'border-slate-200 bg-white text-muted hover:border-slate-300'
+                    }`}>
+                    <Ico size={16}/> {o.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <Field label="Date & heure RDV">
               <input type="datetime-local" required className="input"
                      value={form.scheduled_at} onChange={set('scheduled_at')} />
             </Field>
             <Field label="Vol">
-              <input required className="input" placeholder="EK455"
+              <input required className="input uppercase" placeholder="EK455"
                      value={form.flight} onChange={set('flight')} />
-            </Field>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            <Field label="Direction">
-              <select className="input" value={form.flow} onChange={set('flow')}>
-                {FLOW_OPTIONS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
-              </select>
-            </Field>
-            <Field label="Source">
-              <select className="input" value={form.source} onChange={set('source')}>
-                {SOURCE_OPTIONS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
-              </select>
-            </Field>
-            <Field label="Statut">
-              <select className="input" value={form.status} onChange={set('status')}>
-                <option value="todo">À faire</option>
-                <option value="active">En cours</option>
-                <option value="done">Terminé</option>
-              </select>
             </Field>
           </div>
 
@@ -116,29 +180,41 @@ export default function ServiceModal({ open, initial, porters, onClose, onSave }
           </div>
 
           <Field label="Point de rendez-vous">
-            <input required className="input" value={form.meeting_point} onChange={set('meeting_point')} />
+            <input required className="input" placeholder="Terminal 1 · Porte A12" value={form.meeting_point} onChange={set('meeting_point')} />
           </Field>
 
-          <div className="grid grid-cols-3 gap-4">
-            <Field label="Bagages">
-              <input type="number" min={0} className="input" value={form.bags} onChange={set('bags')} />
-            </Field>
-            <Field label="Prix base CHF">
-              <input type="number" step="0.5" className="input" value={form.base_price_chf} onChange={set('base_price_chf')} />
-            </Field>
-            <Field label="Prix / bagage CHF">
-              <input type="number" step="0.5" className="input" value={form.per_bag_price_chf} onChange={set('per_bag_price_chf')} />
-            </Field>
+          {/* Bags + auto price preview */}
+          <div className="rounded-xl bg-slate-50 border border-slate-200 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <div className="label">Bagages</div>
+                <div className="text-[11px] text-muted mt-0.5">
+                  Inclus dans le forfait : 3 bagages · facturation par tranche au-delà
+                </div>
+              </div>
+              <input type="number" min={0} max={20} className="input !h-11 w-20 text-center text-lg font-display font-semibold"
+                     value={form.bags} onChange={set('bags')} />
+            </div>
+            <div className="flex items-center justify-between pt-3 border-t border-slate-200">
+              <div className="text-xs text-muted">{breakdown}</div>
+              <div className="font-display text-2xl font-semibold text-magenta tabular-nums">
+                {total} CHF
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Agence">
-              <input className="input" value={form.agency} onChange={set('agency')} />
+            <Field label="Statut">
+              <select className="input" value={form.status} onChange={set('status')}>
+                <option value="todo">À faire</option>
+                <option value="active">En cours</option>
+                <option value="done">Terminé</option>
+              </select>
             </Field>
             <Field label="Assigné à">
               <select className="input" value={form.assigned_porter_id ?? ''} onChange={set('assigned_porter_id')}>
                 <option value="">Non assigné</option>
-                {porters.filter(p => p.role === 'porter' || p.role === 'chef').map(p => (
+                {porters.map(p => (
                   <option key={p.id} value={p.id}>{p.first_name} {p.last_name}</option>
                 ))}
               </select>
@@ -151,11 +227,16 @@ export default function ServiceModal({ open, initial, porters, onClose, onSave }
           </Field>
         </div>
 
-        <div className="px-6 py-4 border-t border-slate-200 flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="btn-secondary">Annuler</button>
-          <button type="submit" disabled={saving} className="btn-primary">
-            {saving ? 'Enregistrement…' : (initial ? 'Enregistrer' : 'Créer')}
-          </button>
+        <div className="px-6 py-4 border-t border-slate-200 flex justify-between items-center">
+          <div className="text-xs text-muted">
+            <span className="font-semibold">Total facturé :</span> {total} CHF
+          </div>
+          <div className="flex gap-2">
+            <button type="button" onClick={onClose} className="btn-secondary">Annuler</button>
+            <button type="submit" disabled={saving} className="btn-primary">
+              {saving ? 'Enregistrement…' : (initial ? 'Enregistrer' : 'Créer')}
+            </button>
+          </div>
         </div>
       </form>
     </div>

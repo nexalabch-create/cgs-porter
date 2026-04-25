@@ -2,6 +2,7 @@ import React from 'react';
 import { Icon } from '../components/Icons.jsx';
 import { StatusPill } from './Services.jsx';
 import { findPorter, porterDisplayName } from '../data/porters.js';
+import { totalChfFor, DEFAULT_TARIFF } from '../lib/pricing.js';
 
 function fmtTimer(sec) {
   const h = String(Math.floor(sec / 3600)).padStart(2, '0');
@@ -69,9 +70,12 @@ export default function DetailScreen({ service, user, onBack, onUpdate, onAssign
   const [elapsed, setElapsed] = React.useState(service.elapsed || 0);
   const [savedTick, setSavedTick] = React.useState(false);
 
-  const PRICE_PER_BAG = 12;
-  const BASE = 25;
-  const price = BASE + bags * PRICE_PER_BAG;
+  // Per-source pricing — see src/lib/pricing.js for the source-of-truth.
+  const isPrivateLike = ['prive', 'web', 'guichet'].includes(service.source);
+  const BASE = isPrivateLike ? DEFAULT_TARIFF.prive_base_chf : DEFAULT_TARIFF.dnata_swissport_base_chf;
+  const PRICE_PER_BAG = isPrivateLike ? DEFAULT_TARIFF.prive_extra_bag_chf : DEFAULT_TARIFF.dnata_swissport_extra_bag_chf;
+  const INCLUDED = DEFAULT_TARIFF.bags_included_in_base;
+  const price = totalChfFor({ source: service.source, bags });
 
   React.useEffect(() => {
     if (status !== 'active') return;
@@ -264,7 +268,9 @@ export default function DetailScreen({ service, user, onBack, onUpdate, onAssign
           <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>Nombre de bagages</div>
-              <div style={{ marginTop: 2, fontSize: 12, color: 'var(--muted)' }}>CHF {PRICE_PER_BAG}.– par bagage</div>
+              <div style={{ marginTop: 2, fontSize: 12, color: 'var(--muted)' }}>
+                {isPrivateLike ? 'Privé' : 'DNATA / Swissport'} · {INCLUDED} bagages inclus dès {BASE} CHF, +{PRICE_PER_BAG} CHF par bagage
+              </div>
             </div>
             <Stepper value={bags} onChange={setBags} min={1} max={20}/>
           </div>
@@ -275,7 +281,9 @@ export default function DetailScreen({ service, user, onBack, onUpdate, onAssign
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           }}>
             <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>
-              Total · {bags} × {PRICE_PER_BAG} + {BASE}
+              {bags <= INCLUDED
+                ? `Forfait ${INCLUDED} bagages`
+                : `${BASE} + ${bags - INCLUDED} × ${PRICE_PER_BAG}`}
             </div>
             <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy)', letterSpacing: '-.02em', fontVariantNumeric: 'tabular-nums' }}>
               CHF {price}.–

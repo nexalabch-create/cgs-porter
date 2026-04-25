@@ -15,6 +15,7 @@
 //     to one shift/day, no need for cursor pagination
 import React from 'react';
 import { getSupabase, isSupabaseConfigured } from '../lib/supabase.js';
+import { totalChfFor } from '../lib/pricing.js';
 
 // Field translation: DB snake_case → camelCase used by the React UI.
 const fromRow = (r) => ({
@@ -24,7 +25,9 @@ const fromRow = (r) => ({
   client: r.client_name,
   meeting: r.meeting_point,
   bags: r.bags,
-  price: Number(r.base_price_chf) + r.bags * Number(r.per_bag_price_chf),
+  source: r.source,
+  // Tier-based pricing: depends on source + bags. See src/lib/pricing.js.
+  price: totalChfFor({ source: r.source, bags: r.bags }),
   status: r.status,
   agency: r.agency,
   phone: r.client_phone,
