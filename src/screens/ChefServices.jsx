@@ -43,10 +43,12 @@ function PorterChip({ porterId }) {
   );
 }
 
-function ChefCard({ s, onOpen, index = 0 }) {
+function ChefCard({ s, onOpen }) {
   return (
-    <div onClick={onOpen} className="tappable stagger-in" style={{
-      ['--stagger']: index,
+    // No stagger animation — at 100+ rows the per-card animation-delay was
+    // causing iOS Safari subpixel rendering artifacts on the flight numbers.
+    // List feels more "professional" without the entry choreography anyway.
+    <div onClick={onOpen} className="tappable" style={{
       position: 'relative', background: '#fff',
       borderRadius: 16, padding: '14px 14px 14px 18px',
       border: '1px solid #ececf1',
@@ -201,12 +203,8 @@ export default function ChefServicesScreen({ user, services, onOpen }) {
             </div>
           </div>
         )}
-        {visible.map((s, i) => (
-          // Cap stagger to 6 — beyond that the animation-delay (i × 55ms) pushes
-          // late cards into seconds-long delays, which iOS Safari's GPU rasterizer
-          // can render with subpixel artifacts ("haloed" text). First 6 keep the
-          // delight; the rest snap in.
-          <ChefCard key={s.id} s={s} index={Math.min(i, 6)} onOpen={() => onOpen(s.id)}/>
+        {visible.map((s) => (
+          <ChefCard key={s.id} s={s} onOpen={() => onOpen(s.id)}/>
         ))}
       </div>
     </div>

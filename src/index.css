@@ -34,14 +34,16 @@ html, body, #root {
   -webkit-text-size-adjust: 100%;
 }
 
-/* Display font for headings + hero numerics. Apply via `.display`. */
+/* Display font for headings + hero numerics. Apply via `.display`.
+   Note: the Bricolage Grotesque stylistic alternates ('ss01', 'cv11') were
+   producing a haloed/doubled-edge effect on iOS Safari for the tabular
+   numerics in the chef services list — Bricolage's webfont version doesn't
+   ship those alternate glyphs cleanly, and the fallback path in iOS combined
+   with `font-variant-numeric: tabular-nums` triggered subpixel artifacts.
+   Removed; the font still has a distinctive look without them. */
 .display {
   font-family: var(--font-display);
-  font-feature-settings: 'ss01', 'cv11';
   letter-spacing: -.02em;
-  /* Force iOS Safari to use crisp, legibility-first glyph rendering — without
-     these, big tabular numerics on the chef-services list can render with a
-     subtle halo / double-edge effect when paired with stagger animations. */
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
