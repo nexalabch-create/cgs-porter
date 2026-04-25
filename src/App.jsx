@@ -10,6 +10,12 @@ import ChefServicesScreen from './screens/ChefServices.jsx';
 import AssignSheet from './components/AssignSheet.jsx';
 import { findPorter } from './data/porters.js';
 import { useServices } from './hooks/useServices.js';
+import { getSupabase, isSupabaseConfigured } from './lib/supabase.js';
+
+const DEMO_EMAIL = {
+  chef:   'mate.torgvaidze@cgs-ltd.com',
+  porter: 'marc.dubois@cgs-ltd.com',
+};
 
 // Today's services. assignedPorterId === null → unassigned (chef must dispatch).
 // In production this is `services` from Supabase, kept in sync via a realtime subscription.
@@ -109,7 +115,29 @@ export default function App() {
   const [activeId, setActiveId] = React.useState(null);
   const [assignTargetId, setAssignTargetId] = React.useState(null);
 
-  const handleLogin = (role) => {
+  // When Supabase is configured we resolve the real auth.users.id via RPC so
+  // services.assigned_porter_id (real UUID) matches user.id correctly.
+  // In demo mode (no env vars) we fall back to the hardcoded directory.
+  const handleLogin = async (role) => {
+    if (isSupabaseConfigured()) {
+      const sb = await getSupabase();
+      if (sb) {
+        const { data, error } = await sb.rpc('demo_login', { p_email: DEMO_EMAIL[role] });
+        if (!error && data && data[0]) {
+          const u = data[0];
+          setUser({
+            id: u.id,
+            role: u.role,
+            email: u.email,
+            firstName: u.first_name,
+            lastName: u.last_name,
+            initials: u.initials,
+          });
+          setScreen('home');
+          return;
+        }
+      }
+    }
     const id = role === 'chef' ? 'mt' : 'p2';
     const u = findPorter(id);
     setUser({ ...u, role });

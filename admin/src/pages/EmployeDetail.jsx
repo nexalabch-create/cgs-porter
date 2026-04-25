@@ -23,6 +23,19 @@ export default function EmployeDetail() {
   const monthChf = month.reduce((acc, s) => acc + totalChf(s), 0);
   const last10 = mine.slice().sort((a, b) => new Date(b.scheduled_at) - new Date(a.scheduled_at)).slice(0, 10);
 
+  // While the porters list is still loading, show a loading state
+  // instead of the misleading "Employé introuvable" error.
+  if (isLoading) {
+    return (
+      <>
+        <PageHeader title="Chargement…"/>
+        <div className="px-8 py-10 text-sm text-muted">
+          <Link to="/employes" className="btn-secondary"><ArrowLeft size={16}/> Retour</Link>
+        </div>
+      </>
+    );
+  }
+
   if (!employee) {
     return (
       <>
