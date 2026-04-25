@@ -14,7 +14,7 @@ export default function Layout() {
             MODE DÉMO — aucune base configurée. Définis VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY puis redémarre.
           </div>
         ) : null}
-        <div className="flex-1 overflow-y-auto" key={location.pathname}>
+        <div className="flex-1 overflow-y-auto min-h-screen" key={location.pathname}>
           <Outlet />
         </div>
       </main>
