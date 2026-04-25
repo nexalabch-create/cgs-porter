@@ -1,0 +1,26 @@
+# dependencies
+node_modules
+admin/node_modules
+
+# build output
+dist
+admin/dist
+
+# env files — keep secrets out of git
+.env
+.env.local
+.env.*.local
+admin/.env
+admin/.env.local
+admin/.env.*.local
+
+# editor / OS
+.DS_Store
+.vscode
+.idea
+*.log
+
+# vite
+.vite
+admin/.vite
+.vercel

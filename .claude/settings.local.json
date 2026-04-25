@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:api.anthropic.com)",
+      "Bash(mkdir -p /tmp/cgs-design)",
+      "Read(//tmp/**)",
+      "Bash(cp \"/Users/matetorgvaidze/.claude/projects/-Users-matetorgvaidze-Desktop-CGS-App/b9a00dc9-d34f-4440-8fd2-dae153d2691d/tool-results/webfetch-1777127744803-7z5qk4.bin\" design.tar.gz)",
+      "Bash(gunzip -f design.tar.gz)",
+      "Read(//private/tmp/cgs-design/**)",
+      "Bash(tar -xf design.tar)",
+      "Bash(python3 -c \"from PIL import Image; print\\('PIL ok'\\)\")",
+      "Bash(npm run *)",
+      "Bash(npm install *)",
+      "Bash(curl -s -o /dev/null -w \"dev server: HTTP %{http_code}\\\\n\" http://localhost:5173/)",
+      "Bash(curl -s http://localhost:5173/src/hooks/useServices.js)",
+      "Bash(node scripts/run-sql.mjs -)",
+      "Bash(node scripts/run-sql.mjs supabase/migrations/0002_admin_extensions.sql)",
+      "Bash(node scripts/seed-supabase.mjs)"
+    ]
+  }
+}

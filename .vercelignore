@@ -1,0 +1,12 @@
+# Don't ship the admin folder when deploying the mobile app
+admin/
+scripts/
+supabase/
+.claude/
+node_modules/
+dist/
+
+# secrets — Vercel pulls env vars from its own dashboard
+.env
+.env.local
+.env.*.local

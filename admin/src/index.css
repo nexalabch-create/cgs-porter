@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, #root { height: 100%; }
+  body { font-family: theme('fontFamily.sans'); color: theme('colors.ink'); }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg bg-magenta text-white font-semibold text-sm
+           shadow-[0_8px_18px_-8px_rgba(233,30,140,.55)] hover:bg-magenta-600 active:scale-[.98]
+           transition disabled:opacity-50 disabled:pointer-events-none;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg bg-white text-ink border border-slate-200
+           font-semibold text-sm hover:bg-slate-50 active:scale-[.98] transition;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 h-9 px-3 rounded-lg text-muted hover:text-ink hover:bg-slate-100
+           font-medium text-sm transition;
+  }
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg bg-red-500 text-white font-semibold text-sm
+           hover:bg-red-600 active:scale-[.98] transition;
+  }
+  .input {
+    @apply h-10 w-full px-3 rounded-lg bg-white border border-slate-200 text-sm text-ink placeholder:text-slate-400
+           focus:outline-none focus:border-magenta focus:ring-2 focus:ring-magenta/15 transition;
+  }
+  .label {
+    @apply text-xs font-semibold text-muted uppercase tracking-wider;
+  }
+  .card {
+    @apply bg-white rounded-2xl border border-slate-200 shadow-card;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase;
+  }
+  .table-head th {
+    @apply text-left text-[11px] font-bold text-muted uppercase tracking-wider px-4 py-2.5;
+  }
+  .table-body td {
+    @apply px-4 py-3 text-sm text-ink border-t border-slate-100;
+  }
+}
