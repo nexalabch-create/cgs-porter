@@ -16,6 +16,7 @@ const DEMO_EMAIL = {
   chef:   'mate.torgvaidze@cgs-ltd.com',
   porter: 'marc.dubois@cgs-ltd.com',
 };
+const DEMO_PASSWORD = 'CgsPorter2026!';
 
 // Today's services. assignedPorterId === null → unassigned (chef must dispatch).
 // In production this is `services` from Supabase, kept in sync via a realtime subscription.
@@ -115,36 +116,53 @@ export default function App() {
   const [activeId, setActiveId] = React.useState(null);
   const [assignTargetId, setAssignTargetId] = React.useState(null);
 
-  // When Supabase is configured we resolve the real auth.users.id via RPC so
-  // services.assigned_porter_id (real UUID) matches user.id correctly.
-  // In demo mode (no env vars) we fall back to the hardcoded directory.
+  // Sign in via real Supabase Auth so RLS policies work (auth.uid() is set).
+  // RLS on services requires authenticated session — without it the porter
+  // would see an empty list. The Login UI is still a role toggle (demo
+  // shortcut); it submits the matching seed credentials behind the scenes.
+  // Falls back to demo mode (in-memory SAMPLE) when Supabase isn't configured.
   const handleLogin = async (role) => {
     if (isSupabaseConfigured()) {
       const sb = await getSupabase();
       if (sb) {
-        const { data, error } = await sb.rpc('demo_login', { p_email: DEMO_EMAIL[role] });
-        if (!error && data && data[0]) {
-          const u = data[0];
-          setUser({
-            id: u.id,
-            role: u.role,
-            email: u.email,
-            firstName: u.first_name,
-            lastName: u.last_name,
-            initials: u.initials,
-          });
-          setScreen('home');
-          return;
+        const email = DEMO_EMAIL[role];
+        const { data: authData, error: authErr } = await sb.auth.signInWithPassword({
+          email,
+          password: DEMO_PASSWORD,
+        });
+        if (!authErr && authData?.user) {
+          // Fetch profile row (RLS allows reading own row).
+          const { data: profile } = await sb
+            .from('users').select('*').eq('id', authData.user.id).single();
+          if (profile) {
+            setUser({
+              id: profile.id,
+              role: profile.role,
+              email: profile.email,
+              firstName: profile.first_name,
+              lastName: profile.last_name,
+              initials: profile.initials,
+            });
+            setScreen('home');
+            return;
+          }
+        } else if (authErr) {
+          console.warn('[handleLogin] auth error', authErr);
         }
       }
     }
+    // Demo fallback (no Supabase).
     const id = role === 'chef' ? 'mt' : 'p2';
     const u = findPorter(id);
     setUser({ ...u, role });
     setScreen('home');
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (isSupabaseConfigured()) {
+      const sb = await getSupabase();
+      if (sb) await sb.auth.signOut();
+    }
     setUser(null);
     setScreen('login');
   };
