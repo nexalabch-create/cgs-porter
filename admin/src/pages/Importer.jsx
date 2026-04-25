@@ -4,7 +4,14 @@ import { Upload, FileText, Check, X, AlertCircle, Download, Sparkles } from 'luc
 import PageHeader from '../components/PageHeader.jsx';
 import { supabase, isSupabaseConfigured } from '../lib/supabase.js';
 
-const TODAY_DEFAULT = '2026-03-01';
+// Default to *today* so the imported services show up immediately in
+// "Services aujourd'hui" / "CA aujourd'hui" on the dashboard.
+const todayIso = () => {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+const TODAY_DEFAULT = todayIso();
 
 // Map a CSV row from the daily-services sheet onto a public.services insert.
 function rowToService(row, dateStr) {
@@ -101,11 +108,24 @@ export default function Importer() {
     setFile(null); setPreview(null); setError(null); setDone(null);
   };
 
+  // Quick-load the bundled demo CSV for board presentations.
+  const loadDemo = async () => {
+    setError(null); setDone(null);
+    const res = await fetch('/templates/services-2026-03-01.csv');
+    const csv = await res.text();
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const f = new File([blob], 'demo-services.csv', { type: 'text/csv' });
+    handleFile(f);
+  };
+
   return (
     <>
       <PageHeader
         title="Importer"
         subtitle="Charge les services du jour ou le roster depuis un CSV / Google Sheets exporté.">
+        <button onClick={loadDemo} className="btn-secondary">
+          <Sparkles size={16}/> Charger jeu démo
+        </button>
         <a href="/templates/services-2026-03-01.csv" download className="btn-secondary">
           <Download size={16}/> Modèle services
         </a>
