@@ -1,13 +1,14 @@
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, ListChecks, Users, CalendarDays,
-  Star, BarChart3, Settings, LogOut,
+  Star, BarChart3, Settings, LogOut, Upload,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth.jsx';
 
 const NAV = [
   { to: '/',            label: 'Dashboard',  icon: LayoutDashboard, end: true },
   { to: '/services',    label: 'Services',   icon: ListChecks },
+  { to: '/importer',    label: 'Importer',   icon: Upload },
   { to: '/employes',    label: 'Employés',   icon: Users },
   { to: '/planning',    label: 'Planning',   icon: CalendarDays },
   { to: '/crm',         label: 'CRM Clients',icon: Star },

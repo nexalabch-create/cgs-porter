@@ -5,6 +5,7 @@ import Layout from './components/Layout.jsx';
 import Login from './pages/Login.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Services from './pages/Services.jsx';
+import Importer from './pages/Importer.jsx';
 import Employes from './pages/Employes.jsx';
 import EmployeDetail from './pages/EmployeDetail.jsx';
 import Planning from './pages/Planning.jsx';
@@ -49,6 +50,7 @@ export default function App() {
         <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route path="/"                 element={<Dashboard />} />
           <Route path="/services"         element={<Services />} />
+          <Route path="/importer"         element={<Importer />} />
           <Route path="/employes"         element={<Employes />} />
           <Route path="/employes/:id"     element={<EmployeDetail />} />
           <Route path="/planning"         element={<Planning />} />
