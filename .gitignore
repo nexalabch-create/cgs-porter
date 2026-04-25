@@ -24,3 +24,7 @@ admin/.env.*.local
 .vite
 admin/.vite
 .vercel
+
+# deck QA artefacts (regenerable from build-deck.mjs)
+presentation/qa-images
+presentation/CGS-Porter-Pitch.pdf
