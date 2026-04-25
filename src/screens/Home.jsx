@@ -2,7 +2,8 @@ import React from 'react';
 import { Icon } from '../components/Icons.jsx';
 
 export default function HomeScreen({ firstName = 'Mate', nextService, shift, stats, onOpenService, onOpenPlanning }) {
-  const today = new Date(2026, 3, 25);
+  // Real "now" — was hardcoded during dev. Demo runs on whatever today is.
+  const today = new Date();
   const dateLabel = today.toLocaleDateString('fr-CH', { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (

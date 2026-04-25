@@ -74,7 +74,10 @@ export default function ChefHomeScreen({
   user, services, shift, stats, team = [],
   onAssignNext, onOpenPlanning,
 }) {
-  const today = new Date(2026, 3, 25);
+  // Real "now" — was hardcoded to 2026-04-25 during dev. The date label
+  // tracks the actual day so the demo doesn't say "Samedi 25 Avril" when
+  // run on May 1.
+  const today = new Date();
   const dateLabel = today.toLocaleDateString('fr-CH', { weekday: 'long', day: 'numeric', month: 'long' });
 
   const unassigned = services.filter(s => !s.assignedPorterId);
