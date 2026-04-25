@@ -181,8 +181,9 @@ export default function ChefHomeScreen({
             <>
               <div style={{
                 marginTop: 12, padding: '14px 16px', borderRadius: 14,
-                background: 'linear-gradient(135deg, rgba(233,30,140,.06) 0%, rgba(255,255,255,0) 70%)',
-                border: '1px solid #fde6f0',
+                background: 'linear-gradient(135deg, #fff5fa 0%, #fde6f0 100%)',
+                border: '1px solid #fbd0e2',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,.7)',
               }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
                   <span className="display" style={{
@@ -214,11 +215,11 @@ export default function ChefHomeScreen({
 
               <button onClick={onAssignNext} className="tappable" style={{
                 marginTop: 14, width: '100%', height: 50, border: 0, borderRadius: 14,
-                background: 'linear-gradient(135deg, var(--magenta) 0%, #d11c7d 100%)',
+                background: 'linear-gradient(135deg, #f23ba0 0%, #c2127a 100%)',
                 color: '#fff', fontFamily: 'inherit', fontWeight: 700, fontSize: 14.5,
                 letterSpacing: '-.005em', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                boxShadow: '0 10px 24px -10px rgba(233,30,140,.65), inset 0 1px 0 rgba(255,255,255,.18)',
+                boxShadow: '0 10px 24px -10px rgba(233,30,140,.65), inset 0 1px 0 rgba(255,255,255,.25)',
                 transition: 'transform .15s ease, box-shadow .2s ease',
               }}>
                 Assigner un porteur <Icon.ChevronRight size={16}/>
