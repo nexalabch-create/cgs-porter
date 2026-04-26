@@ -24,14 +24,23 @@ function dateChips() {
   ];
 }
 
+// Shift presets — codes match the regex `^[A-Z]{2,3}[0-9]{1,3}$` from
+// supabase/migrations (the `code` column on public.shifts).
+// Ordered by family (CQ → TR → CA → CO) and within each family by start time.
+// `end` of '23:59' is used for shifts that effectively run until midnight —
+// the BD `time` type can't span days, so we stop one minute short rather than
+// roll over (which would compute a negative duration).
 const SHIFT_PRESETS = [
   { code: 'CQ1', start: '06:00', end: '14:30', pause: 30 },
   { code: 'CQ2', start: '14:15', end: '23:30', pause: 45 },
   { code: 'TR1', start: '05:15', end: '14:30', pause: 45 },
-  { code: 'TR5', start: '12:00', end: '21:00', pause: 45 },
   { code: 'TR6', start: '06:00', end: '15:00', pause: 45 },
+  { code: 'TR9', start: '09:00', end: '18:00', pause: 45 },
+  { code: 'TR5', start: '12:00', end: '21:00', pause: 45 },
+  { code: 'TR13', start: '13:00', end: '21:00', pause: 45 },
   { code: 'CA1', start: '10:00', end: '19:00', pause: 45 },
   { code: 'CO2', start: '14:15', end: '23:30', pause: 45 },
+  { code: 'CO4', start: '16:00', end: '23:59', pause: 45 },
 ];
 
 export default function Planning() {
