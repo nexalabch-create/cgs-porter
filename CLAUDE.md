@@ -42,8 +42,8 @@ CGS App/
 
 | App | URL |
 |---|---|
-| Mobile PWA | `https://cgs-porter-gngjvmkl8-nexalabch-creates-projects.vercel.app` |
-| Admin Panel | `https://cgs-porter-admin-lojfo7muw-nexalabch-creates-projects.vercel.app` |
+| Mobile PWA | `https://cgs-porter-ai8hj6zy4-nexalabch-creates-projects.vercel.app` |
+| Admin Panel | `https://cgs-porter-admin-800uo8t77-nexalabch-creates-projects.vercel.app` |
 | Supabase | `https://ronmmqbqapdxinutxnah.supabase.co` |
 
 GitHub: https://github.com/nexalabch-create/cgs-porter (private; user `absolut888034` is collaborator).
