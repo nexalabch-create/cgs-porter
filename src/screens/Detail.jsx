@@ -243,20 +243,22 @@ export default function DetailScreen({ service, user, onBack, onUpdate, onAssign
               )}
             </div>
 
-            <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+            <div style={{ marginTop: 14, display: 'flex', gap: 8 }}>
               <button onClick={() => onAssign && onAssign(service.id)} className="tappable" style={{
-                flex: 1, height: 44, border: 0, borderRadius: 12,
-                background: 'var(--magenta)', color: '#fff',
-                fontFamily: 'inherit', fontWeight: 700, fontSize: 14, cursor: 'pointer',
-                boxShadow: '0 6px 14px -8px rgba(233,30,140,.55)',
+                flex: 1, height: 50, border: 0, borderRadius: 14,
+                background: 'linear-gradient(135deg, #f23ba0 0%, #c2127a 100%)',
+                color: '#fff', fontFamily: 'inherit', fontWeight: 700, fontSize: 14.5,
+                letterSpacing: '-.005em', cursor: 'pointer',
+                boxShadow: '0 10px 24px -10px rgba(233,30,140,.6), inset 0 1px 0 rgba(255,255,255,.25)',
               }}>
                 {assignedPorter ? 'Réassigner' : 'Assigner un porteur'}
               </button>
               {!isAssignedToMe && (
                 <button onClick={() => onSelfAssign && onSelfAssign(service.id)} className="tappable" style={{
-                  flex: 1, height: 44, border: '1.5px solid var(--navy)', background: '#fff',
-                  color: 'var(--navy)', borderRadius: 12,
-                  fontFamily: 'inherit', fontWeight: 700, fontSize: 14, cursor: 'pointer',
+                  flex: 1, height: 50, border: '1.5px solid #e7e7ee', background: '#fff',
+                  color: 'var(--navy)', borderRadius: 14,
+                  fontFamily: 'inherit', fontWeight: 700, fontSize: 14.5, cursor: 'pointer',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,.7), 0 1px 2px rgba(15,15,40,.04)',
                 }}>
                   Je le fais
                 </button>
@@ -327,13 +329,19 @@ export default function DetailScreen({ service, user, onBack, onUpdate, onAssign
 
         {showPorterControls && (
         <div style={{ marginTop: 18 }}>
+          {/* Unified primary-CTA style: 56px tall, 14px radius, brand gradient,
+              consistent with the chef-home "Assigner un porteur" CTA. The
+              big-and-emphatic feel is preserved (porters in motion need a
+              tap-target that's easy to hit) but the visual language matches
+              the rest of the app. */}
           {status === 'todo' && (
             <button onClick={start} className="tappable" style={{
-              width: '100%', height: 58, border: 0, borderRadius: 16,
-              background: 'var(--green)', color: '#fff',
-              fontFamily: 'inherit', fontSize: 17, fontWeight: 800, letterSpacing: '.02em',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-              boxShadow: '0 10px 24px -10px rgba(16,185,129,.6), 0 2px 4px rgba(16,185,129,.2)',
+              width: '100%', height: 56, border: 0, borderRadius: 14,
+              background: 'linear-gradient(135deg, #14d399 0%, #059669 100%)',
+              color: '#fff', fontFamily: 'inherit', fontSize: 16, fontWeight: 800,
+              letterSpacing: '.02em', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+              boxShadow: '0 10px 24px -10px rgba(16,185,129,.65), inset 0 1px 0 rgba(255,255,255,.25)',
             }}>
               <span style={{ width: 8, height: 8, borderRadius: 999, background: '#fff' }}/>
               DÉMARRER LE SERVICE
@@ -341,11 +349,12 @@ export default function DetailScreen({ service, user, onBack, onUpdate, onAssign
           )}
           {status === 'active' && (
             <button onClick={end} className="tappable" style={{
-              width: '100%', height: 58, border: 0, borderRadius: 16,
-              background: 'var(--red)', color: '#fff',
-              fontFamily: 'inherit', fontSize: 17, fontWeight: 800, letterSpacing: '.02em',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-              boxShadow: '0 10px 24px -10px rgba(239,68,68,.6), 0 2px 4px rgba(239,68,68,.2)',
+              width: '100%', height: 56, border: 0, borderRadius: 14,
+              background: 'linear-gradient(135deg, #f87171 0%, #dc2626 100%)',
+              color: '#fff', fontFamily: 'inherit', fontSize: 16, fontWeight: 800,
+              letterSpacing: '.02em', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+              boxShadow: '0 10px 24px -10px rgba(239,68,68,.65), inset 0 1px 0 rgba(255,255,255,.25)',
             }}>
               <span style={{ width: 12, height: 12, borderRadius: 2, background: '#fff' }}/>
               TERMINER LE SERVICE
@@ -353,10 +362,11 @@ export default function DetailScreen({ service, user, onBack, onUpdate, onAssign
           )}
           {status === 'done' && (
             <button onClick={onBack} className="tappable" style={{
-              width: '100%', height: 56, border: 0, borderRadius: 16,
-              background: 'var(--navy)', color: '#fff',
-              fontFamily: 'inherit', fontSize: 16, fontWeight: 700,
-              cursor: 'pointer',
+              width: '100%', height: 56, border: 0, borderRadius: 14,
+              background: 'linear-gradient(135deg, #2a2a7a 0%, #1a1a5e 100%)',
+              color: '#fff', fontFamily: 'inherit', fontSize: 15.5, fontWeight: 700,
+              letterSpacing: '-.005em', cursor: 'pointer',
+              boxShadow: '0 10px 24px -10px rgba(26,26,94,.55), inset 0 1px 0 rgba(255,255,255,.18)',
             }}>
               Retour aux services
             </button>

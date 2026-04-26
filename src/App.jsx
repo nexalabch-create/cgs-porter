@@ -271,7 +271,15 @@ export default function App() {
     remaining: '5h',
     cash: myServices.filter(s => s.status === 'done').reduce((sum, s) => sum + s.price, 0) || 147,
   };
-  const porterNext = myServices.find(s => s.status === 'todo') || myServices[0];
+  // Pick the most relevant service to show on the porter's home:
+  //   1) currently in progress (active) — the one they're doing right now
+  //   2) the next one to do (todo)
+  //   3) null → triggers the "Aucun service prévu" empty state
+  // (Falling back to myServices[0] used to surface a done service after the
+  // porter completed everything, making it look like work hadn't ended.)
+  const porterNext = myServices.find(s => s.status === 'active')
+                  || myServices.find(s => s.status === 'todo')
+                  || null;
 
   const showTabs = user && ['home', 'services', 'planning', 'profile'].includes(screen);
   const assignTarget = services.find(s => s.id === assignTargetId);
@@ -321,6 +329,8 @@ export default function App() {
           <ChefServicesScreen
             user={user}
             services={services}
+            unreadCount={unreadCount}
+            onOpenNotifications={() => setNotifsOpen(true)}
             onOpen={(id) => { setActiveId(id); setScreen('detail'); }}
           />
         )}
@@ -329,6 +339,8 @@ export default function App() {
             services={myServices}
             firstName={user.firstName}
             empty={myServices.length === 0}
+            unreadCount={unreadCount}
+            onOpenNotifications={() => setNotifsOpen(true)}
             onOpen={(id) => { setActiveId(id); setScreen('detail'); }}
           />
         )}

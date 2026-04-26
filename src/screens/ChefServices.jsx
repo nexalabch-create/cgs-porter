@@ -1,6 +1,7 @@
 import React from 'react';
 import { Icon } from '../components/Icons.jsx';
 import { StatusPill } from './Services.jsx';
+import { NotificationBell } from '../components/NotificationsSheet.jsx';
 import { findPorter, porterDisplayName } from '../data/porters.js';
 
 const FILTERS = [
@@ -96,7 +97,7 @@ function ChefCard({ s, onOpen }) {
   );
 }
 
-export default function ChefServicesScreen({ user, services, onOpen }) {
+export default function ChefServicesScreen({ user, services, onOpen, unreadCount = 0, onOpenNotifications }) {
   const [filter, setFilter] = React.useState('all');
   // Real "now" — was hardcoded during dev. Same fix as ChefHome.jsx + Home.jsx.
   const today = new Date();
@@ -132,12 +133,15 @@ export default function ChefServicesScreen({ user, services, onOpen }) {
               {dateLabel}
             </div>
           </div>
-          <div style={{
-            width: 40, height: 40, borderRadius: 999, background: 'linear-gradient(135deg, #fce0ee, #fcb6da)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontWeight: 700, color: 'var(--magenta)', fontSize: 14, border: '1.5px solid #fff',
-            boxShadow: '0 1px 2px rgba(0,0,0,.06)',
-          }}>{user.initials}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <NotificationBell count={unreadCount} onClick={onOpenNotifications}/>
+            <div style={{
+              width: 40, height: 40, borderRadius: 999, background: 'linear-gradient(135deg, #fce0ee, #fcb6da)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontWeight: 700, color: 'var(--magenta)', fontSize: 14, border: '1.5px solid #fff',
+              boxShadow: '0 1px 2px rgba(0,0,0,.06)',
+            }}>{user.initials}</div>
+          </div>
         </div>
 
         <div style={{ marginTop: 14, display: 'flex', alignItems: 'baseline', gap: 8 }}>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Icon } from '../components/Icons.jsx';
+import { NotificationBell } from '../components/NotificationsSheet.jsx';
 
 export function StatusPill({ status }) {
   const map = {
@@ -96,8 +97,12 @@ function EmptyState() {
   );
 }
 
-export default function ServicesScreen({ services, onOpen, firstName = 'Marc', empty = false }) {
-  const today = new Date(2026, 3, 25);
+export default function ServicesScreen({
+  services, onOpen, firstName = 'Marc', empty = false,
+  unreadCount = 0, onOpenNotifications,
+}) {
+  // Real "now" — was hardcoded to 2026-04-25 during dev. Tracks the actual day.
+  const today = new Date();
   const dateLabel = today.toLocaleDateString('fr-CH', { weekday: 'long', day: 'numeric', month: 'long' });
   const count = services.length;
   const counts = services.reduce((a, s) => (a[s.status] = (a[s.status] || 0) + 1, a), {});
@@ -118,12 +123,17 @@ export default function ServicesScreen({ services, onOpen, firstName = 'Marc', e
               {dateLabel}
             </div>
           </div>
-          <div style={{
-            width: 40, height: 40, borderRadius: 999, background: 'linear-gradient(135deg, #fce0ee, #fcb6da)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontWeight: 700, color: 'var(--magenta)', fontSize: 14, border: '1.5px solid #fff',
-            boxShadow: '0 1px 2px rgba(0,0,0,.06)',
-          }}>{firstName.slice(0, 1)}T</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {onOpenNotifications && (
+              <NotificationBell count={unreadCount} onClick={onOpenNotifications}/>
+            )}
+            <div style={{
+              width: 40, height: 40, borderRadius: 999, background: 'linear-gradient(135deg, #fce0ee, #fcb6da)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontWeight: 700, color: 'var(--magenta)', fontSize: 14, border: '1.5px solid #fff',
+              boxShadow: '0 1px 2px rgba(0,0,0,.06)',
+            }}>{firstName.slice(0, 1).toUpperCase()}</div>
+          </div>
         </div>
 
         <div style={{ marginTop: 14, display: 'flex', alignItems: 'baseline', gap: 8 }}>
