@@ -31,3 +31,9 @@ presentation/CGS-Porter-Pitch.pdf
 
 # audit run artefacts (regenerable from scripts/audit-full.py)
 presentation/audit-artifacts
+
+# cgs-qa-loop run state (per-run logs + history) — local cache, regenerable
+.claude/skills/cgs-qa-loop/state/run-*
+.claude/skills/cgs-qa-loop/state/latest
+.claude/skills/cgs-qa-loop/state/history.jsonl
+.claude/skills/cgs-qa-loop/state/known-issues.json

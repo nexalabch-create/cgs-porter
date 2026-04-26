@@ -1,0 +1,7 @@
+# cgs-qa-loop state directory
+#
+# This directory holds per-run logs (run-*) and persistent memory:
+# - history.jsonl    — one line per run (timestamp, counts, deploy status)
+# - known-issues.json — silenced/accepted/rejected yellow findings
+#
+# Everything except this .gitkeep is gitignored — the runs are local cache.

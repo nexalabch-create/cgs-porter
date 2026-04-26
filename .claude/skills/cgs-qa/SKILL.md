@@ -7,6 +7,8 @@ description: Run a complete QA + security + design audit on the CGS Porter mobil
 
 End-to-end verification suite for the CGS Porter system. Combines four installed skills + project-specific smoke tests, reports findings, and fixes the easy ones automatically.
 
+> **For unattended / repeatable runs**: see the sister skill `cgs-qa-loop`. It wraps this orchestration with mandatory re-verification, automatic rollback if a fix breaks anything, persistent run history, and a closed list of safe auto-fix patterns. Use it for "every X minutes" / "before every demo" / "overnight cron" workflows. This skill (`cgs-qa`) is for one-off interactive audits; `cgs-qa-loop` is for the safety-first automated loop.
+
 ## Targets
 
 | Surface | Production URL |
