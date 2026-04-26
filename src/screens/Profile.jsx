@@ -136,14 +136,30 @@ export default function ProfileScreen({ user, onLogout }) {
         </div>
 
         <button onClick={onLogout} className="tappable" style={{
-          marginTop: 4, width: '100%', height: 50, border: '1.5px solid #fadce9',
-          background: '#fff', color: 'var(--magenta)', borderRadius: 14,
-          fontFamily: 'inherit', fontWeight: 700, fontSize: 15, cursor: 'pointer',
+          marginTop: 6, width: '100%', height: 52,
+          border: '1px solid #fbd0e2',
+          background: 'linear-gradient(135deg, #fff5fa 0%, #fde6f0 100%)',
+          color: 'var(--magenta)', borderRadius: 14,
+          fontFamily: 'inherit', fontWeight: 700, fontSize: 15,
+          letterSpacing: '-.005em', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,.7)',
         }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" strokeWidth="2"
+               strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
           Se déconnecter
         </button>
-        <div style={{ textAlign: 'center', fontSize: 11, color: '#aaaab8', letterSpacing: '.04em' }}>
-          CGS Porter · v2.4.1
+        <div style={{
+          marginTop: 18, marginBottom: 4,
+          textAlign: 'center', fontSize: 10.5, color: '#b5b5c2',
+          letterSpacing: '.06em', fontWeight: 600,
+        }}>
+          CGS PORTER · v2.4.1
         </div>
       </div>
     </div>

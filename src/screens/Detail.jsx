@@ -105,23 +105,38 @@ export default function DetailScreen({ service, user, onBack, onUpdate, onAssign
     <div className="fade-enter" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#f7f7fb', minHeight: 0 }}>
       <div style={{
         background: '#fff',
-        padding: 'calc(env(safe-area-inset-top, 0px) + 14px) 8px 18px 8px',
+        padding: 'calc(env(safe-area-inset-top, 0px) + 14px) 12px 16px 12px',
         borderBottom: '1px solid #ececf1',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <button className="tappable" onClick={onBack} style={{
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {/* Back — fixed 40px column */}
+          <button className="tappable" onClick={onBack} aria-label="Retour" style={{
             width: 40, height: 40, borderRadius: 10, border: 0, background: 'transparent',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--ink)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', color: 'var(--ink)', flexShrink: 0,
           }}>
             <Icon.ChevronLeft/>
           </button>
-          <div style={{ textAlign: 'center', flex: 1 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', letterSpacing: '.1em', textTransform: 'uppercase' }}>Service</div>
-            <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: '-.01em', color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
+          {/* Title — flex grows to fill the middle */}
+          <div style={{ textAlign: 'center', flex: 1, minWidth: 0 }}>
+            <div style={{
+              fontSize: 11, fontWeight: 600, color: 'var(--muted)',
+              letterSpacing: '.1em', textTransform: 'uppercase',
+            }}>Service</div>
+            <div style={{
+              fontSize: 17, fontWeight: 800, letterSpacing: '-.01em',
+              color: 'var(--ink)', fontVariantNumeric: 'tabular-nums',
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            }}>
               {service.flight} · {service.time}
             </div>
           </div>
-          <div style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {/* Status pill — give it enough room (≈90px) so "À FAIRE" / "EN COURS"
+              never wrap or clip. Aligned right via flexShrink:0 + min-width. */}
+          <div style={{
+            minWidth: 88, display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+            flexShrink: 0,
+          }}>
             <StatusPill status={status}/>
           </div>
         </div>
