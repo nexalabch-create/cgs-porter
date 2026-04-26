@@ -17,6 +17,10 @@ import React from 'react';
 import { getSupabase, isSupabaseConfigured } from '../lib/supabase.js';
 import { totalChfFor } from '../lib/pricing.js';
 
+// uuid-format regex used to validate inputs to assignPorter — prevents the
+// stale-fallback race in AssignSheet from silently dropping the UPDATE.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 // Field translation: DB snake_case → camelCase used by the React UI.
 const fromRow = (r) => ({
   id: r.id,
@@ -116,15 +120,28 @@ export function useServices(initial = []) {
   // Mutations — write through to Supabase when online; always update local state
   // optimistically so the UI feels instant.
   const assignPorter = React.useCallback(async (serviceId, porterId) => {
+    // Defensive validation: assigned_porter_id is uuid in BD. If a string
+    // demo ID slipped through (race condition with useUsers), bail out
+    // visibly instead of optimistically lying to the UI.
+    if (isOnline && !UUID_RE.test(String(porterId))) {
+      console.warn('[useServices] refused non-UUID porterId:', porterId);
+      return { error: 'invalid_porter_id', detail: `expected UUID, got "${porterId}"` };
+    }
     setServices((arr) => arr.map((s) => s.id === serviceId ? { ...s, assignedPorterId: porterId } : s));
-    if (!isOnline) return;
+    if (!isOnline) return { ok: true };
     const sb = await getSupabase();
-    if (!sb) return;
+    if (!sb) return { ok: true };
     const { error } = await sb
       .from('services')
       .update({ assigned_porter_id: porterId })
       .eq('id', serviceId);
-    if (error) console.warn('[useServices] assign failed', error);
+    if (error) {
+      // Roll back the optimistic update so UI matches reality.
+      setServices((arr) => arr.map((s) => s.id === serviceId ? { ...s, assignedPorterId: null } : s));
+      console.warn('[useServices] assign failed', error);
+      return { error: error.code || 'assign_failed', detail: error.message };
+    }
+    return { ok: true };
   }, [isOnline]);
 
   const updateService = React.useCallback(async (data) => {

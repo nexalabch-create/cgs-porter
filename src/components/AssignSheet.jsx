@@ -1,5 +1,6 @@
 import React from 'react';
 import { PORTERS } from '../data/porters.js';
+import { isSupabaseConfigured } from '../lib/supabase.js';
 
 // AssignSheet now accepts a `users` prop (real Supabase users with UUIDs).
 // Falls back to the static PORTERS demo array when Supabase isn't configured
@@ -26,10 +27,14 @@ export default function AssignSheet({ open, service, onClose, onAssign, users })
 
   if (!open) return null;
 
-  // Use real Supabase users when provided (production path), otherwise
-  // fall back to the static demo PORTERS so the sheet still renders in
-  // demo mode. Either way the shape is { id, firstName, lastName, role, initials }.
-  const source = (users && users.length > 0) ? users : PORTERS;
+  // CRITICAL: when Supabase is configured we must NEVER fall back to PORTERS,
+  // because PORTERS' string IDs ('p2', 'mt'…) silently fail the UPDATE on
+  // assigned_porter_id (uuid column). If users hasn't loaded yet, we render
+  // a loading spinner instead. Only in pure demo mode (no Supabase env vars)
+  // do we use PORTERS as the source.
+  const sbReady = isSupabaseConfigured();
+  const stillLoading = sbReady && (!users || users.length === 0);
+  const source = stillLoading ? [] : (sbReady ? users : PORTERS);
   const all = source.filter(p => p.role === 'porter' || p.role === 'chef');
   const q = query.trim().toLowerCase();
   const filtered = (q
@@ -80,7 +85,15 @@ export default function AssignSheet({ open, service, onClose, onAssign, users })
         </div>
 
         <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '0 16px 16px' }}>
-          {filtered.length === 0 && (
+          {stillLoading && (
+            <div style={{ padding: '40px 8px', textAlign: 'center' }}>
+              <div className="spinner-magenta" style={{ margin: '0 auto 14px' }}/>
+              <div style={{ fontSize: 13, color: 'var(--muted)' }}>
+                Chargement de l'équipe…
+              </div>
+            </div>
+          )}
+          {!stillLoading && filtered.length === 0 && (
             <div style={{ padding: '32px 8px', textAlign: 'center', fontSize: 13, color: 'var(--muted)' }}>
               Aucun résultat.
             </div>

@@ -109,6 +109,12 @@ input, textarea, button { font-family: inherit; }
 }
 
 @keyframes spin { to { transform: rotate(360deg) } }
+.spinner-magenta {
+  width: 28px; height: 28px; border-radius: 999px;
+  border: 2.5px solid var(--magenta-soft);
+  border-top-color: var(--magenta);
+  animation: spin .8s linear infinite;
+}
 @keyframes sheetUp { from { transform: translateY(100%) } to { transform: translateY(0) } }
 @keyframes sheetFade { from { opacity: 0 } to { opacity: 1 } }
 @keyframes toastUp { from { opacity: 0; transform: translateY(20px) } to { opacity: 1; transform: none } }

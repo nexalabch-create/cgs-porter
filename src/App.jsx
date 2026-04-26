@@ -224,13 +224,23 @@ export default function App() {
     if (assignTargetId) {
       const svc = services.find((s) => s.id === assignTargetId);
       const p = findPorter(porterId);
-      assignPorter(assignTargetId, porterId);
-      if (svc && p) {
-        const isMe = porterId === user?.id;
-        setToast(isMe
-          ? `${svc.flight} · ${svc.time} — vous l'avez pris ✨`
-          : `${svc.flight} · ${svc.time} assigné à ${p.firstName} ${p.lastName}`);
-      }
+      const targetId = assignTargetId;
+      // Async: surface BD/RLS/UUID errors as a red toast instead of silent
+      // optimistic-update lies. Only show the success toast after the BD
+      // confirms the UPDATE.
+      (async () => {
+        const result = await assignPorter(targetId, porterId);
+        if (result?.error) {
+          setToast(`⚠️ Échec de l'assignation — ${result.detail || result.error}`);
+          return;
+        }
+        if (svc && p) {
+          const isMe = porterId === user?.id;
+          setToast(isMe
+            ? `${svc.flight} · ${svc.time} — vous l'avez pris ✨`
+            : `${svc.flight} · ${svc.time} assigné à ${p.firstName} ${p.lastName}`);
+        }
+      })();
     }
     setAssignTargetId(null);
   };
