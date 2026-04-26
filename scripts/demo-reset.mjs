@@ -157,6 +157,33 @@ if (withServices) {
       ${rows.join(',\n      ')};
   `);
   console.log(`   ✓ inserted ${rows.length} services`);
+
+  // Pre-assign a few services to the demo porter (Marc Dubois). Without this,
+  // every porter has 0 services on login — the mobile flow ("Voir le service")
+  // and the qa-mobile-e2e test both rely on at least one assignment existing.
+  // 3 is enough to make the porter home meaningful while leaving 19 unassigned
+  // for the chef to demo assigning live.
+  const demoPorter = (await sql(`
+    select id from public.users where email = 'marc.dubois@cgs-ltd.com' limit 1;
+  `))[0];
+  if (demoPorter) {
+    const assigned = await sql(`
+      with picks as (
+        select id from public.services
+        where scheduled_at::date = current_date and assigned_porter_id is null
+        order by scheduled_at
+        limit 3
+      )
+      update public.services s
+        set assigned_porter_id = '${demoPorter.id}'::uuid
+        from picks
+        where s.id = picks.id
+        returning s.id;
+    `);
+    console.log(`   ✓ pre-assigned ${assigned.length} services to Marc Dubois (demo porter)`);
+  } else {
+    console.log('   ⚠ Marc Dubois not found — skipping pre-assignment');
+  }
 }
 
 // ── Step 4: summary ──────────────────────────────────────────────────────
