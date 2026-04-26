@@ -237,7 +237,11 @@ export default function PlanningScreen() {
               </div>
             </div>
           </div>
-          <button className="tappable" style={{
+          <button onClick={() => {
+            // Le parser PDF du roster est sur la roadmap (post-démo).
+            // Pour le moment l'import passe par le panel admin (CSV).
+            alert("Parser PDF du roster — bientôt disponible.\n\nPour le moment, importez votre roster en CSV depuis le panel admin sur ordinateur.");
+          }} className="tappable" style={{
             marginTop: 10, width: '100%', height: 50, border: 0, borderRadius: 14,
             background: 'var(--magenta)', color: '#fff',
             fontFamily: 'inherit', fontWeight: 700, fontSize: 15,
