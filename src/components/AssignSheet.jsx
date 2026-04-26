@@ -1,6 +1,11 @@
 import React from 'react';
 import { PORTERS } from '../data/porters.js';
 
+// AssignSheet now accepts a `users` prop (real Supabase users with UUIDs).
+// Falls back to the static PORTERS demo array when Supabase isn't configured
+// (or while users are still loading). The shape is normalized in either case
+// to { id, firstName, lastName, role, initials }.
+
 // Same gradient cycler used in ChefHome — keeps the brand language unified.
 const AVATAR_GRADIENTS = [
   'linear-gradient(135deg, #fcecf4 0%, #f8a8d4 100%)',
@@ -15,16 +20,17 @@ function hashIdx(s, n) {
   return Math.abs(h) % n;
 }
 
-export default function AssignSheet({ open, service, onClose, onAssign }) {
+export default function AssignSheet({ open, service, onClose, onAssign, users }) {
   const [query, setQuery] = React.useState('');
   React.useEffect(() => { if (open) setQuery(''); }, [open]);
 
   if (!open) return null;
 
-  // Both porters and chefs are assignable — chefs regularly take services
-  // themselves when the team is short-handed. Sort: chefs first (so the
-  // user can quickly pick themselves or a co-chef), then porters by name.
-  const all = PORTERS.filter(p => p.role === 'porter' || p.role === 'chef');
+  // Use real Supabase users when provided (production path), otherwise
+  // fall back to the static demo PORTERS so the sheet still renders in
+  // demo mode. Either way the shape is { id, firstName, lastName, role, initials }.
+  const source = (users && users.length > 0) ? users : PORTERS;
+  const all = source.filter(p => p.role === 'porter' || p.role === 'chef');
   const q = query.trim().toLowerCase();
   const filtered = (q
     ? all.filter(p => `${p.firstName} ${p.lastName}`.toLowerCase().includes(q))

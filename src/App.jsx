@@ -9,9 +9,12 @@ import ChefHomeScreen from './screens/ChefHome.jsx';
 import ChefServicesScreen from './screens/ChefServices.jsx';
 import AssignSheet from './components/AssignSheet.jsx';
 import Toast from './components/Toast.jsx';
-import { findPorter } from './data/porters.js';
+import NotificationsSheet from './components/NotificationsSheet.jsx';
+import { findPorter as findDemoPorter } from './data/porters.js';
 import { useServices } from './hooks/useServices.js';
 import { useTodayPlanning } from './hooks/useTodayPlanning.js';
+import { useUsers } from './hooks/useUsers.js';
+import { useNotifications } from './hooks/useNotifications.js';
 import { getSupabase, isSupabaseConfigured } from './lib/supabase.js';
 
 const DEMO_EMAIL = {
@@ -124,9 +127,38 @@ export default function App() {
   // configured, in-memory SAMPLE otherwise.
   const { services, assignPorter, updateService, isOnline } = useServices(SAMPLE);
   const { team: todayTeam, myShift } = useTodayPlanning(user?.id);
+  const { users: realUsers } = useUsers();   // real Supabase users — UUIDs, used by AssignSheet
+  const {
+    notifications, unreadCount, markRead, markAllRead,
+    latestUnseen, dismissLatest,
+  } = useNotifications(user?.id);
   const [activeId, setActiveId] = React.useState(null);
   const [assignTargetId, setAssignTargetId] = React.useState(null);
   const [toast, setToast] = React.useState(null);
+  const [notifsOpen, setNotifsOpen] = React.useState(false);
+
+  // Pop a toast when a fresh notification arrives in realtime — gives the
+  // user immediate awareness without forcing them to open the bell.
+  React.useEffect(() => {
+    if (!latestUnseen) return;
+    const p = latestUnseen.payload || {};
+    let msg = '';
+    if (latestUnseen.type === 'service_assigned') {
+      msg = `Nouveau service : ${p.flight} · ${p.time}`;
+    } else if (latestUnseen.type === 'service_started') {
+      msg = `${p.flight} démarré`;
+    } else if (latestUnseen.type === 'service_completed') {
+      msg = `${p.flight} terminé`;
+    }
+    if (msg) setToast(msg);
+    dismissLatest();
+  }, [latestUnseen, dismissLatest]);
+
+  // Resolve a porter for display (chips, toasts, etc) — try real users first,
+  // fall back to the static demo array.
+  const findPorter = React.useCallback((id) => {
+    return realUsers.find((u) => u.id === id) || findDemoPorter(id);
+  }, [realUsers]);
 
   // Sign in via real Supabase Auth so RLS policies work (auth.uid() is set).
   // RLS on services requires authenticated session — without it the porter
@@ -253,6 +285,8 @@ export default function App() {
             team={todayTeam}
             shift={shiftFromRow(myShift) || { code: '—', start: '—', end: '—', pause: 0 }}
             stats={chefStats}
+            unreadCount={unreadCount}
+            onOpenNotifications={() => setNotifsOpen(true)}
             onAssignNext={onAssignNext}
             onOpenPlanning={() => setScreen('planning')}
           />
@@ -263,6 +297,8 @@ export default function App() {
             nextService={porterNext}
             shift={shiftFromRow(myShift) || { code: '—', start: '—', end: '—', pause: 0 }}
             stats={porterStats}
+            unreadCount={unreadCount}
+            onOpenNotifications={() => setNotifsOpen(true)}
             onOpenService={() => { setActiveId(porterNext.id); setScreen('detail'); }}
             onOpenPlanning={() => setScreen('planning')}
           />
@@ -310,8 +346,18 @@ export default function App() {
       <AssignSheet
         open={!!assignTargetId}
         service={assignTarget}
+        users={realUsers}
         onClose={closeAssignSheet}
         onAssign={onPickPorter}
+      />
+
+      <NotificationsSheet
+        open={notifsOpen}
+        notifications={notifications}
+        isChef={user?.role === 'chef'}
+        onClose={() => setNotifsOpen(false)}
+        onMarkRead={markRead}
+        onMarkAllRead={markAllRead}
       />
 
       <Toast message={toast} onDismiss={() => setToast(null)} />

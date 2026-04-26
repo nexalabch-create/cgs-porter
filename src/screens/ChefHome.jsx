@@ -1,5 +1,6 @@
 import React from 'react';
 import { Icon } from '../components/Icons.jsx';
+import { NotificationBell } from '../components/NotificationsSheet.jsx';
 
 // Parse "HH:MM" or "HH:MM:SS" into minutes-since-midnight.
 function hmToMin(s) {
@@ -72,6 +73,7 @@ function SectionLabel({ children, accent, right }) {
 
 export default function ChefHomeScreen({
   user, services, shift, stats, team = [],
+  unreadCount = 0, onOpenNotifications,
   onAssignNext, onOpenPlanning,
 }) {
   // Real "now" — was hardcoded to 2026-04-25 during dev. The date label
@@ -125,14 +127,17 @@ export default function ChefHomeScreen({
               {dateLabel} · <span style={{ color: 'var(--navy)', fontWeight: 700 }}>Chef d'équipe</span>
             </div>
           </div>
-          <div style={{
-            width: 44, height: 44, borderRadius: 999,
-            background: 'var(--magenta)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontWeight: 800, color: '#fff', fontSize: 14,
-            border: '2px solid #fff',
-            boxShadow: '0 0 24px rgba(233, 30, 140, .22), 0 1px 3px rgba(0,0,0,.08)',
-          }}>{user.initials}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <NotificationBell count={unreadCount} onClick={onOpenNotifications}/>
+            <div style={{
+              width: 44, height: 44, borderRadius: 999,
+              background: 'var(--magenta)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontWeight: 800, color: '#fff', fontSize: 14,
+              border: '2px solid #fff',
+              boxShadow: '0 0 24px rgba(233, 30, 140, .22), 0 1px 3px rgba(0,0,0,.08)',
+            }}>{user.initials}</div>
+          </div>
         </div>
 
         <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>

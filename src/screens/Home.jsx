@@ -1,7 +1,12 @@
 import React from 'react';
 import { Icon } from '../components/Icons.jsx';
+import { NotificationBell } from '../components/NotificationsSheet.jsx';
 
-export default function HomeScreen({ firstName = 'Mate', nextService, shift, stats, onOpenService, onOpenPlanning }) {
+export default function HomeScreen({
+  firstName = 'Mate', nextService, shift, stats,
+  unreadCount = 0, onOpenNotifications,
+  onOpenService, onOpenPlanning,
+}) {
   // Real "now" — was hardcoded during dev. Demo runs on whatever today is.
   const today = new Date();
   const dateLabel = today.toLocaleDateString('fr-CH', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -22,12 +27,15 @@ export default function HomeScreen({ firstName = 'Mate', nextService, shift, sta
               {dateLabel}
             </div>
           </div>
-          <div style={{
-            width: 40, height: 40, borderRadius: 999, background: 'linear-gradient(135deg, #fce0ee, #fcb6da)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontWeight: 700, color: 'var(--magenta)', fontSize: 14, border: '1.5px solid #fff',
-            boxShadow: '0 1px 2px rgba(0,0,0,.06)',
-          }}>MT</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <NotificationBell count={unreadCount} onClick={onOpenNotifications}/>
+            <div style={{
+              width: 40, height: 40, borderRadius: 999, background: 'linear-gradient(135deg, #fce0ee, #fcb6da)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontWeight: 700, color: 'var(--magenta)', fontSize: 14, border: '1.5px solid #fff',
+              boxShadow: '0 1px 2px rgba(0,0,0,.06)',
+            }}>{(firstName?.[0] ?? 'P') + 'P'}</div>
+          </div>
         </div>
 
         <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
