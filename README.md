@@ -6,8 +6,8 @@ Mobile PWA + admin panel for **CGS — Carrying Geneva Services**, the airport p
 
 | | URL | Stack |
 |---|---|---|
-| 📱 Mobile PWA (porters + chefs) | https://cgs-porter-ai8hj6zy4-nexalabch-creates-projects.vercel.app | Vite + React + vite-plugin-pwa + Supabase |
-| 🖥 Admin Panel (chefs only) | https://cgs-porter-admin-800uo8t77-nexalabch-creates-projects.vercel.app | Vite + React + Tailwind + Chart.js + Supabase |
+| 📱 Mobile PWA (porters + chefs) | https://cgs-porter-n6tphvr8b-nexalabch-creates-projects.vercel.app | Vite + React + vite-plugin-pwa + Supabase |
+| 🖥 Admin Panel (chefs only) | https://cgs-porter-admin-fprcjrq4z-nexalabch-creates-projects.vercel.app | Vite + React + Tailwind + Chart.js + Supabase |
 
 ## Repo layout
 
