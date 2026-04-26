@@ -166,40 +166,54 @@ export default function App() {
   // shortcut); it submits the matching seed credentials behind the scenes.
   // Falls back to demo mode (in-memory SAMPLE) when Supabase isn't configured.
   const handleLogin = async (role) => {
-    if (isSupabaseConfigured()) {
-      const sb = await getSupabase();
-      if (sb) {
-        const email = DEMO_EMAIL[role];
-        const { data: authData, error: authErr } = await sb.auth.signInWithPassword({
-          email,
-          password: DEMO_PASSWORD,
-        });
-        if (!authErr && authData?.user) {
-          // Fetch profile row (RLS allows reading own row).
-          const { data: profile } = await sb
-            .from('users').select('*').eq('id', authData.user.id).single();
-          if (profile) {
-            setUser({
-              id: profile.id,
-              role: profile.role,
-              email: profile.email,
-              firstName: profile.first_name,
-              lastName: profile.last_name,
-              initials: profile.initials,
-            });
-            setScreen('home');
-            return;
+    try {
+      if (isSupabaseConfigured()) {
+        const sb = await getSupabase();
+        if (sb) {
+          const email = DEMO_EMAIL[role];
+          const { data: authData, error: authErr } = await sb.auth.signInWithPassword({
+            email,
+            password: DEMO_PASSWORD,
+          });
+          if (!authErr && authData?.user) {
+            // Fetch profile row (RLS allows reading own row).
+            const { data: profile } = await sb
+              .from('users').select('*').eq('id', authData.user.id).single();
+            if (profile) {
+              setUser({
+                id: profile.id,
+                role: profile.role,
+                email: profile.email,
+                firstName: profile.first_name,
+                lastName: profile.last_name,
+                initials: profile.initials,
+              });
+              setScreen('home');
+              return;
+            }
+          } else if (authErr) {
+            console.warn('[handleLogin] auth error', authErr);
           }
-        } else if (authErr) {
-          console.warn('[handleLogin] auth error', authErr);
         }
       }
+      // Demo fallback (no Supabase or auth failed).
+      const id = role === 'chef' ? 'mt' : 'p2';
+      const u = findPorter(id);
+      setUser({ ...u, role });
+      setScreen('home');
+    } catch (err) {
+      console.error('[handleLogin] unhandled exception', err);
+      // Last-resort fallback so the user gets SOMEWHERE — better than a
+      // dead spinner. Falls into demo mode with hardcoded names.
+      setUser({
+        id: role === 'chef' ? 'mt' : 'p2',
+        firstName: role === 'chef' ? 'Mate' : 'Marc',
+        lastName: role === 'chef' ? 'Torgvaidze' : 'Dubois',
+        initials: role === 'chef' ? 'MT' : 'MD',
+        role,
+      });
+      setScreen('home');
     }
-    // Demo fallback (no Supabase).
-    const id = role === 'chef' ? 'mt' : 'p2';
-    const u = findPorter(id);
-    setUser({ ...u, role });
-    setScreen('home');
   };
 
   const handleLogout = async () => {

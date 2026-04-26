@@ -22,10 +22,20 @@ export default function LoginScreen({ onLogin }) {
   const [focused, setFocused] = React.useState(null);
   const [loading, setLoading] = React.useState(false);
 
-  const submit = (e) => {
-    e && e.preventDefault();
+  const submit = async (e) => {
+    // Defensive against iOS PWA quirks where the form's onSubmit can fail
+    // to fan out the click. Also handle being invoked directly from the
+    // button's onClick (no event object) without crashing.
+    if (e) { e.preventDefault?.(); e.stopPropagation?.(); }
+    if (loading) return;            // already in flight, ignore double-taps
     setLoading(true);
-    setTimeout(() => { setLoading(false); onLogin(role); }, 700);
+    try {
+      await onLogin(role);
+    } catch (err) {
+      console.error('[Login.submit] unhandled', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fieldWrap = (name) => ({
@@ -136,14 +146,30 @@ export default function LoginScreen({ onLogin }) {
           }}>Mot de passe oublié ?</a>
         </div>
 
-        <button type="submit" disabled={loading} className="tappable" style={{
-          marginTop: 14, height: 54, border: 0, borderRadius: 14,
-          background: 'var(--magenta)', color: '#fff',
-          fontFamily: 'inherit', fontWeight: 700, fontSize: 16, letterSpacing: '-.005em',
-          cursor: 'pointer',
-          boxShadow: '0 8px 20px -8px rgba(233,30,140,.55), 0 2px 4px rgba(233,30,140,.2)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-        }}>
+        <button
+          type="button"
+          disabled={loading}
+          className="tappable"
+          onClick={submit}
+          onTouchEnd={(e) => {
+            // iOS Safari belt-and-suspenders: some PWA shells swallow click
+            // when touch-action: manipulation is on. onTouchEnd ensures the
+            // tap always reaches the handler.
+            e.preventDefault?.();
+            if (!loading) submit(e);
+          }}
+          style={{
+            marginTop: 14, height: 54, border: 0, borderRadius: 14,
+            background: loading
+              ? 'linear-gradient(135deg, #f9a4cf 0%, #d889b6 100%)'
+              : 'linear-gradient(135deg, #f23ba0 0%, #c2127a 100%)',
+            color: '#fff',
+            fontFamily: 'inherit', fontWeight: 700, fontSize: 16, letterSpacing: '-.005em',
+            cursor: loading ? 'wait' : 'pointer',
+            boxShadow: '0 10px 24px -10px rgba(233,30,140,.65), inset 0 1px 0 rgba(255,255,255,.25)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+            transition: 'background .15s ease',
+          }}>
           {loading && (
             <span style={{
               width: 18, height: 18, borderRadius: 999,
