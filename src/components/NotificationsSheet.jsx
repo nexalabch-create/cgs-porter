@@ -70,7 +70,11 @@ function bodyFor(n, isChef) {
   return JSON.stringify(p);
 }
 
-export default function NotificationsSheet({ open, notifications, onClose, onMarkRead, onMarkAllRead, isChef }) {
+export default function NotificationsSheet({
+  open, notifications, isChef,
+  onClose, onMarkRead, onMarkAllRead,
+  onRemove, onClearAll, onOpenService,
+}) {
   if (!open) return null;
 
   return (
@@ -101,15 +105,28 @@ export default function NotificationsSheet({ open, notifications, onClose, onMar
                 : `${notifications.length} ${notifications.length === 1 ? 'notification' : 'notifications'}`}
             </div>
           </div>
-          {notifications.some(n => !n.readAt) && (
-            <button onClick={onMarkAllRead} className="tappable" style={{
-              border: 0, background: 'transparent',
-              color: 'var(--magenta)', fontFamily: 'inherit', fontWeight: 700,
-              fontSize: 12, cursor: 'pointer', padding: '6px 8px',
-            }}>
-              Tout marquer lu
-            </button>
-          )}
+          <div style={{ display: 'flex', gap: 4 }}>
+            {notifications.some(n => !n.readAt) && (
+              <button onClick={onMarkAllRead} className="tappable" style={{
+                border: 0, background: 'transparent',
+                color: 'var(--magenta)', fontFamily: 'inherit', fontWeight: 700,
+                fontSize: 12, cursor: 'pointer', padding: '6px 8px',
+              }}>
+                Tout lu
+              </button>
+            )}
+            {notifications.length > 0 && onClearAll && (
+              <button onClick={() => {
+                if (confirm('Supprimer toutes les notifications ?')) onClearAll();
+              }} className="tappable" style={{
+                border: 0, background: 'transparent',
+                color: 'var(--red)', fontFamily: 'inherit', fontWeight: 700,
+                fontSize: 12, cursor: 'pointer', padding: '6px 8px',
+              }}>
+                Tout supprimer
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '4px 16px 16px' }}>
@@ -131,57 +148,101 @@ export default function NotificationsSheet({ open, notifications, onClose, onMar
           {notifications.map((n) => {
             const meta = TYPE_META[n.type] || TYPE_META.service_assigned;
             const unread = !n.readAt;
+            const handleTap = () => {
+              // Mark read AND, if there's a service attached, open it.
+              onMarkRead(n.id);
+              if (n.serviceId && onOpenService) {
+                onOpenService(n.serviceId);
+              }
+            };
             return (
-              <button
-                key={n.id}
-                onClick={() => onMarkRead(n.id)}
-                className="tappable"
-                style={{
-                  width: '100%', textAlign: 'left',
-                  display: 'flex', alignItems: 'flex-start', gap: 12,
-                  padding: '12px 14px', marginBottom: 8,
-                  borderRadius: 14,
-                  border: `1px solid ${unread ? meta.border : '#ececf1'}`,
-                  background: unread ? meta.bg : '#fff',
-                  cursor: 'pointer', fontFamily: 'inherit',
-                  position: 'relative',
-                }}
-              >
-                {unread && (
-                  <span style={{
-                    position: 'absolute', top: 12, right: 12,
-                    width: 8, height: 8, borderRadius: 999, background: meta.color,
-                  }}/>
+              <div key={n.id} style={{
+                position: 'relative',
+                marginBottom: 8,
+                borderRadius: 14,
+                border: `1px solid ${unread ? meta.border : '#ececf1'}`,
+                background: unread ? meta.bg : '#fff',
+              }}>
+                {/* Tap area — navigates to the service detail (if any) + marks read */}
+                <button
+                  onClick={handleTap}
+                  className="tappable"
+                  style={{
+                    width: '100%', textAlign: 'left',
+                    display: 'flex', alignItems: 'flex-start', gap: 12,
+                    padding: '12px 44px 12px 14px',  // extra right padding for the X button
+                    border: 0, background: 'transparent',
+                    cursor: 'pointer', fontFamily: 'inherit',
+                  }}
+                >
+                  {unread && (
+                    <span style={{
+                      position: 'absolute', top: 12, right: 40,
+                      width: 8, height: 8, borderRadius: 999, background: meta.color,
+                    }}/>
+                  )}
+                  <div style={{
+                    width: 36, height: 36, flexShrink: 0,
+                    borderRadius: 12, background: '#fff',
+                    border: `1px solid ${meta.border}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 18,
+                  }}>
+                    {meta.icon}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      fontSize: 11, fontWeight: 700, color: meta.color,
+                      letterSpacing: '.06em', textTransform: 'uppercase',
+                    }}>
+                      {meta.label}
+                    </div>
+                    <div style={{
+                      marginTop: 4, fontSize: 14, color: 'var(--ink)',
+                      letterSpacing: '-.005em', lineHeight: 1.4,
+                    }}>
+                      {bodyFor(n, isChef)}
+                    </div>
+                    <div style={{
+                      marginTop: 6, display: 'flex', alignItems: 'center', gap: 6,
+                      fontSize: 11, color: 'var(--muted)', fontWeight: 600,
+                    }}>
+                      <span>{timeAgo(n.createdAt)}</span>
+                      {n.serviceId && onOpenService && (
+                        <>
+                          <span>·</span>
+                          <span style={{ color: meta.color, fontWeight: 700 }}>
+                            Voir le service →
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </button>
+
+                {/* Delete button — separate so its tap doesn't bubble to the row */}
+                {onRemove && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onRemove(n.id); }}
+                    className="tappable"
+                    aria-label="Supprimer cette notification"
+                    style={{
+                      position: 'absolute', top: 6, right: 6,
+                      width: 30, height: 30, borderRadius: 999,
+                      border: 0, background: 'transparent',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      cursor: 'pointer', color: 'var(--muted)',
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" strokeWidth="2.4"
+                         strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"/>
+                      <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
                 )}
-                <div style={{
-                  width: 36, height: 36, flexShrink: 0,
-                  borderRadius: 12, background: '#fff',
-                  border: `1px solid ${meta.border}`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 18,
-                }}>
-                  {meta.icon}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{
-                    fontSize: 11, fontWeight: 700, color: meta.color,
-                    letterSpacing: '.06em', textTransform: 'uppercase',
-                  }}>
-                    {meta.label}
-                  </div>
-                  <div style={{
-                    marginTop: 4, fontSize: 14, color: 'var(--ink)',
-                    letterSpacing: '-.005em', lineHeight: 1.4,
-                  }}>
-                    {bodyFor(n, isChef)}
-                  </div>
-                  <div style={{
-                    marginTop: 6, fontSize: 11, color: 'var(--muted)', fontWeight: 600,
-                  }}>
-                    {timeAgo(n.createdAt)}
-                  </div>
-                </div>
-              </button>
+              </div>
             );
           })}
         </div>

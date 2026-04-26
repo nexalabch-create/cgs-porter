@@ -89,5 +89,28 @@ export function useNotifications(userId) {
 
   const dismissLatest = React.useCallback(() => setLatestUnseen(null), []);
 
-  return { notifications, unreadCount, markRead, markAllRead, latestUnseen, dismissLatest };
+  // Delete a single notification — removes from the recipient's view.
+  // Optimistic local update; BD delete via RLS (recipient can delete own).
+  const remove = React.useCallback(async (id) => {
+    setNotifications((arr) => arr.filter((n) => n.id !== id));
+    if (!isSupabaseConfigured()) return;
+    const sb = await getSupabase();
+    if (!sb) return;
+    await sb.from('notifications').delete().eq('id', id);
+  }, []);
+
+  // Clear all notifications for this user.
+  const clearAll = React.useCallback(async () => {
+    setNotifications([]);
+    if (!isSupabaseConfigured() || !userId) return;
+    const sb = await getSupabase();
+    if (!sb) return;
+    await sb.from('notifications').delete().eq('recipient_id', userId);
+  }, [userId]);
+
+  return {
+    notifications, unreadCount,
+    markRead, markAllRead, remove, clearAll,
+    latestUnseen, dismissLatest,
+  };
 }

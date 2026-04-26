@@ -129,7 +129,7 @@ export default function App() {
   const { team: todayTeam, myShift } = useTodayPlanning(user?.id);
   const { users: realUsers } = useUsers();   // real Supabase users — UUIDs, used by AssignSheet
   const {
-    notifications, unreadCount, markRead, markAllRead,
+    notifications, unreadCount, markRead, markAllRead, remove, clearAll,
     latestUnseen, dismissLatest,
   } = useNotifications(user?.id);
   const [activeId, setActiveId] = React.useState(null);
@@ -203,12 +203,22 @@ export default function App() {
   };
 
   const handleLogout = async () => {
-    if (isSupabaseConfigured()) {
-      const sb = await getSupabase();
-      if (sb) await sb.auth.signOut();
-    }
+    // Always reset local state FIRST so the user lands on /login even if
+    // signOut throws (expired session, network blip, etc). Otherwise an
+    // exception would skip these two lines and the button looks broken.
     setUser(null);
     setScreen('login');
+    setNotifsOpen(false);
+    setAssignTargetId(null);
+    setActiveId(null);
+    if (isSupabaseConfigured()) {
+      try {
+        const sb = await getSupabase();
+        if (sb) await sb.auth.signOut();
+      } catch (e) {
+        console.warn('[handleLogout] signOut failed (state already reset):', e);
+      }
+    }
   };
 
   // Visible services per role.
@@ -380,6 +390,14 @@ export default function App() {
         onClose={() => setNotifsOpen(false)}
         onMarkRead={markRead}
         onMarkAllRead={markAllRead}
+        onRemove={remove}
+        onClearAll={clearAll}
+        onOpenService={(serviceId) => {
+          // Tap a notification → close sheet, navigate to service detail.
+          setNotifsOpen(false);
+          setActiveId(serviceId);
+          setScreen('detail');
+        }}
       />
 
       <Toast message={toast} onDismiss={() => setToast(null)} />
