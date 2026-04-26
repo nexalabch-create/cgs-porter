@@ -37,3 +37,6 @@ presentation/audit-artifacts
 .claude/skills/cgs-qa-loop/state/latest
 .claude/skills/cgs-qa-loop/state/history.jsonl
 .claude/skills/cgs-qa-loop/state/known-issues.json
+
+# Claude Code internal worktrees (embedded git repos, not source)
+.claude/worktrees/
