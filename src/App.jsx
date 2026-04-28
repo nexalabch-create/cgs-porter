@@ -166,19 +166,28 @@ export default function App() {
   // shortcut); it submits the matching seed credentials behind the scenes.
   // Falls back to demo mode (in-memory SAMPLE) when Supabase isn't configured.
   const handleLogin = async (role) => {
+    // Hard timeout so a stuck network / auth lock never strands the user on
+    // "Connexion…" — after 8s we abandon the BD path and fall through to the
+    // demo fallback, which always reaches a terminal screen.
+    const withTimeout = (promise, ms, label) => Promise.race([
+      promise,
+      new Promise((_, rej) => setTimeout(() => rej(new Error(`timeout:${label}`)), ms)),
+    ]);
     try {
       if (isSupabaseConfigured()) {
         const sb = await getSupabase();
         if (sb) {
           const email = DEMO_EMAIL[role];
-          const { data: authData, error: authErr } = await sb.auth.signInWithPassword({
-            email,
-            password: DEMO_PASSWORD,
-          });
+          const { data: authData, error: authErr } = await withTimeout(
+            sb.auth.signInWithPassword({ email, password: DEMO_PASSWORD }),
+            8000, 'signIn',
+          );
           if (!authErr && authData?.user) {
             // Fetch profile row (RLS allows reading own row).
-            const { data: profile } = await sb
-              .from('users').select('*').eq('id', authData.user.id).single();
+            const { data: profile } = await withTimeout(
+              sb.from('users').select('*').eq('id', authData.user.id).single(),
+              5000, 'profile',
+            );
             if (profile) {
               setUser({
                 id: profile.id,
@@ -228,7 +237,11 @@ export default function App() {
     if (isSupabaseConfigured()) {
       try {
         const sb = await getSupabase();
-        if (sb) await sb.auth.signOut();
+        // scope:'local' clears storage + emits SIGNED_OUT synchronously, no
+        // HTTP. Prevents the race where a global /auth/v1/logout in flight
+        // gets aborted by the next signInWithPassword and leaves the auth
+        // lock half-held, stranding the Login screen on "Connexion…" forever.
+        if (sb) await sb.auth.signOut({ scope: 'local' });
       } catch (e) {
         console.warn('[handleLogout] signOut failed (state already reset):', e);
       }
