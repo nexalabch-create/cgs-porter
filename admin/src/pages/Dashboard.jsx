@@ -4,14 +4,13 @@ import {
   Chart as ChartJS, BarElement, CategoryScale, LinearScale,
   Tooltip, Legend, ArcElement,
 } from 'chart.js';
-import { CalendarRange, Wallet, ListChecks, Users } from 'lucide-react';
+import { CalendarRange, ListChecks } from 'lucide-react';
 
 import PageHeader from '../components/PageHeader.jsx';
 import MetricCard from '../components/MetricCard.jsx';
 import { useDashboardData } from '../hooks/useDashboardData.js';
 import {
-  formatCHF, formatTime, totalChf, SOURCE_LABEL, SOURCE_COLOR,
-  STATUS_LABEL, STATUS_STYLES, shortName,
+  formatTime, SOURCE_LABEL, SOURCE_COLOR, shortName,
 } from '../lib/format.js';
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend, ArcElement);
@@ -70,11 +69,9 @@ export default function Dashboard() {
       />
 
       <div className="px-8 py-6 space-y-6">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <MetricCard label="Services aujourd'hui" value={metrics.todayCount} icon={ListChecks} accent="ink" />
-          <MetricCard label="CA aujourd'hui" value={formatCHF(metrics.todayChf)} icon={Wallet} accent="magenta" />
-          <MetricCard label="Services ce mois" value={metrics.monthCount} icon={CalendarRange} accent="ink" />
-          <MetricCard label="CA ce mois" value={formatCHF(metrics.monthChf)} icon={Users} accent="navy" />
+          <MetricCard label="Services ce mois" value={metrics.monthCount} icon={CalendarRange} accent="navy" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -106,12 +103,12 @@ export default function Dashboard() {
             <table className="w-full">
               <thead className="bg-slate-50 table-head">
                 <tr>
-                  <th>Heure</th><th>Vol</th><th>Client</th><th>Porteur</th><th className="text-right">CHF</th>
+                  <th>Heure</th><th>Vol</th><th>Client</th><th>Porteur</th>
                 </tr>
               </thead>
               <tbody className="table-body">
                 {recent.length === 0 && (
-                  <tr><td colSpan={5} className="text-center text-muted py-8">Aucun service aujourd'hui.</td></tr>
+                  <tr><td colSpan={4} className="text-center text-muted py-8">Aucun service aujourd'hui.</td></tr>
                 )}
                 {recent.map(s => (
                   <tr key={s.id}>
@@ -119,7 +116,6 @@ export default function Dashboard() {
                     <td className="font-display font-semibold">{s.flight}</td>
                     <td className="truncate max-w-[180px]">{s.client_name}</td>
                     <td className="text-muted text-xs">{shortName(s.porter)}</td>
-                    <td className="text-right font-semibold tabular-nums">{formatCHF(totalChf(s))}</td>
                   </tr>
                 ))}
               </tbody>
@@ -133,12 +129,12 @@ export default function Dashboard() {
             <table className="w-full">
               <thead className="bg-slate-50 table-head">
                 <tr>
-                  <th>Porteur</th><th className="text-right">Services</th><th className="text-right">CA</th>
+                  <th>Porteur</th><th className="text-right">Services</th>
                 </tr>
               </thead>
               <tbody className="table-body">
                 {topPorters.length === 0 && (
-                  <tr><td colSpan={3} className="text-center text-muted py-8">Pas encore d'activité.</td></tr>
+                  <tr><td colSpan={2} className="text-center text-muted py-8">Pas encore d'activité.</td></tr>
                 )}
                 {topPorters.map((p, i) => (
                   <tr key={p.id}>
@@ -154,7 +150,6 @@ export default function Dashboard() {
                       </div>
                     </td>
                     <td className="text-right tabular-nums font-semibold">{p.serviceCount}</td>
-                    <td className="text-right tabular-nums font-semibold">{formatCHF(p.totalChf)}</td>
                   </tr>
                 ))}
               </tbody>
