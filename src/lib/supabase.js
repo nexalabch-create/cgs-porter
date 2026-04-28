@@ -32,7 +32,15 @@ export async function getSupabase() {
     try {
       const { createClient } = await import('@supabase/supabase-js');
       _client = createClient(supabaseEnv.url, supabaseEnv.anonKey, {
-        auth: { persistSession: true, autoRefreshToken: true },
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          // No-op lock — bypasses the navigator.locks lock manager that
+          // strands signInWithPassword's Promise after a prior signOut
+          // (HTTP resolves but JS never resumes). Safe for our single-tab
+          // PWA demo: there are no concurrent tabs racing on the auth token.
+          lock: async (_name, _timeout, fn) => fn(),
+        },
         realtime: { params: { eventsPerSecond: 5 } },
       });
       return _client;
