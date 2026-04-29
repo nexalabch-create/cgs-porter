@@ -87,27 +87,37 @@ export default function DetailScreen({ service, user, onBack, onUpdate, onAssign
     return () => clearInterval(id);
   }, [status]);
 
-  // Debounced write-through. Previously this effect fired UPDATE every second
-  // while a service was active (because `elapsed` was a dep) — flooding the
-  // network on patchy airport reception and rate-limiting the porter's session
-  // for trivial state. Now:
-  //   · status changes  → immediate UPDATE (started/done are critical)
-  //   · bags / remarques → 600ms debounce (still feels instant on save tick)
-  //   · elapsed         → never persisted; reconstructed from started_at
-  //                       client-side. `completed_at - started_at` is what
-  //                       reporting cares about.
-  const isFirstSync = React.useRef(true);
+  // Status writes are CRITICAL and must never be swallowed. Every transition
+  // (todo→active→done) must reach the chef's dashboard immediately —
+  // previous attempt with an `isFirstSync` ref accidentally swallowed the
+  // FIRST status change after a Detail re-mount (when Marc closed and
+  // reopened a service before tapping Terminer), which is exactly the bug
+  // reported on 2026-04-29 ("dashboard sigue mostrando À FAIRE aunque Marc
+  // ya empezó/terminó").
+  //
+  // Approach: track the LAST written status in a ref. Only write when the
+  // current status differs from what we last persisted — this skips the
+  // initial-mount no-op without ever swallowing user-driven changes.
+  const lastWrittenStatus = React.useRef(service.status);
   React.useEffect(() => {
-    if (isFirstSync.current) { isFirstSync.current = false; return; }
+    if (status === lastWrittenStatus.current) return;
+    lastWrittenStatus.current = status;
     onUpdate && onUpdate({ ...service, bags, price, remarques, status, elapsed: 0 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
 
+  // Bags / remarques: debounced 600 ms so a porter holding the +/- stepper
+  // doesn't flood the BD with one UPDATE per tap. Skips the initial mount
+  // by comparing against the value seen on first render.
+  const initialBags = React.useRef(service.bags);
+  const initialRemarques = React.useRef(service.remarques || '');
   const writeTimer = React.useRef(null);
   React.useEffect(() => {
-    if (isFirstSync.current) return;
+    if (bags === initialBags.current && remarques === initialRemarques.current) return;
     clearTimeout(writeTimer.current);
     writeTimer.current = setTimeout(() => {
+      initialBags.current = bags;
+      initialRemarques.current = remarques;
       onUpdate && onUpdate({ ...service, bags, price, remarques, status, elapsed: 0 });
     }, 600);
     return () => clearTimeout(writeTimer.current);

@@ -111,10 +111,13 @@ export function useServices(initial = []) {
       authSub = data?.subscription;
     })();
 
-    // Polling fallback — every 10 s re-fetch the services list. Realtime
+    // Polling fallback — every 5 s re-fetch the services list. Realtime
     // is the primary delivery mechanism but it can fail silently (closed
-    // websocket, ISP firewall, mobile data switch). Polling guarantees
-    // every porter sees an assignment within ~10 s in the worst case.
+    // websocket, ISP firewall, mobile data switch between 4G/wifi). 5 s
+    // matches the admin polling so chef + porter see the same state with
+    // the same lag. Tightened from 10 s after a 2026-04-29 report where
+    // a chef saw a porter's status as "À FAIRE" several minutes after
+    // the porter actually marked it Terminé.
     const pollId = setInterval(async () => {
       const sb = await getSupabase();
       if (!sb || !mounted) return;
@@ -124,11 +127,26 @@ export function useServices(initial = []) {
         .order('scheduled_at', { ascending: true });
       if (!mounted || !data) return;
       setServices(data.map(fromRow));
-    }, 10000);
+    }, 5000);
+
+    // When the porter brings the PWA back to the foreground (after Slack,
+    // a phone call, etc.), force an immediate re-fetch. Background tabs
+    // suspend the realtime websocket on iOS Safari, so without this the
+    // app would render stale data for up to 5 s after resume.
+    const onVisible = async () => {
+      if (document.visibilityState !== 'visible') return;
+      const sb = await getSupabase();
+      if (!sb || !mounted) return;
+      const { data } = await sb.from('services').select('*').order('scheduled_at', { ascending: true });
+      if (!mounted || !data) return;
+      setServices(data.map(fromRow));
+    };
+    document.addEventListener('visibilitychange', onVisible);
 
     return () => {
       mounted = false;
       clearInterval(pollId);
+      document.removeEventListener('visibilitychange', onVisible);
       if (channel) channel.unsubscribe();
       if (authSub) authSub.unsubscribe();
     };
