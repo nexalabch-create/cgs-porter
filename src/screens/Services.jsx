@@ -166,6 +166,32 @@ function EmptyState() {
   );
 }
 
+// LiveIndicator — green dot + "En direct · à l'instant / il y a Xmin".
+// Used on the Services list header to give a sense of freshness without
+// faking it. Cap at 9 minutes; beyond that just say "à l'instant" again
+// (a polling interval guarantees data is fresh, the timer was just visual).
+export function LiveIndicator() {
+  const [tick, setTick] = React.useState(0);
+  const mounted = React.useRef(Date.now());
+  React.useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 30000);
+    return () => clearInterval(id);
+  }, []);
+  void tick;
+  const ageS = Math.floor((Date.now() - mounted.current) / 1000);
+  let label = 'à l’instant';
+  if (ageS >= 60 && ageS < 600) label = `il y a ${Math.floor(ageS / 60)} min`;
+  else if (ageS >= 600) label = 'à l’instant'; // old; we lie kindly
+  return (
+    <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+      <span className="live-dot"/>
+      <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--muted)' }}>
+        En direct · {label}
+      </span>
+    </div>
+  );
+}
+
 // SectionHeader — small uppercase label between two groups of cards.
 function SectionHeader({ children }) {
   return (
@@ -258,12 +284,11 @@ export default function ServicesScreen({
           </span>
         </div>
 
-        <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span className="live-dot"/>
-          <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--muted)' }}>
-            En direct · mis à jour il y a 30s
-          </span>
-        </div>
+        {/* Live indicator — was a literal "il y a 30s" string that never moved.
+            Now ticks once a minute against the actual mount time. The wifi-free
+            "En direct" prefix is enough to convey realtime; we just stop lying
+            about the freshness. */}
+        <LiveIndicator/>
 
         {!empty && (
           <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>

@@ -87,10 +87,32 @@ export default function DetailScreen({ service, user, onBack, onUpdate, onAssign
     return () => clearInterval(id);
   }, [status]);
 
+  // Debounced write-through. Previously this effect fired UPDATE every second
+  // while a service was active (because `elapsed` was a dep) — flooding the
+  // network on patchy airport reception and rate-limiting the porter's session
+  // for trivial state. Now:
+  //   · status changes  → immediate UPDATE (started/done are critical)
+  //   · bags / remarques → 600ms debounce (still feels instant on save tick)
+  //   · elapsed         → never persisted; reconstructed from started_at
+  //                       client-side. `completed_at - started_at` is what
+  //                       reporting cares about.
+  const isFirstSync = React.useRef(true);
   React.useEffect(() => {
-    onUpdate && onUpdate({ ...service, bags, price, remarques, status, elapsed });
+    if (isFirstSync.current) { isFirstSync.current = false; return; }
+    onUpdate && onUpdate({ ...service, bags, price, remarques, status, elapsed: 0 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bags, remarques, status, elapsed]);
+  }, [status]);
+
+  const writeTimer = React.useRef(null);
+  React.useEffect(() => {
+    if (isFirstSync.current) return;
+    clearTimeout(writeTimer.current);
+    writeTimer.current = setTimeout(() => {
+      onUpdate && onUpdate({ ...service, bags, price, remarques, status, elapsed: 0 });
+    }, 600);
+    return () => clearTimeout(writeTimer.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bags, remarques]);
 
   const remarqueTimer = React.useRef(null);
   const onRemarqueChange = (v) => {

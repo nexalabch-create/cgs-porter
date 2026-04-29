@@ -4,7 +4,6 @@ import {
   Chart as ChartJS, CategoryScale, LinearScale, LineElement,
   PointElement, ArcElement, Tooltip, Legend, Filler,
 } from 'chart.js';
-import { FileDown, FileSpreadsheet } from 'lucide-react';
 import PageHeader from '../components/PageHeader.jsx';
 import { useServicesData } from '../hooks/useServices.js';
 import {
@@ -16,12 +15,17 @@ ChartJS.register(CategoryScale, LinearScale, LineElement, PointElement, ArcEleme
 export default function Rapports() {
   const { services, porters, porterById, isLoading } = useServicesData();
 
-  // Default range: this month
-  const today = new Date('2026-04-25T12:00:00+02:00');
+  // Default range: this month. Was hardcoded to 2026-04-25 — that anchor
+  // date silently cut every chart and KPI off in April, so on May 1 the
+  // page would render "0 services / 0 CHF / 0 jours". Use the live date.
+  const today = new Date();
   const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
-  const [from, setFrom] = React.useState(firstOfMonth.toISOString().slice(0, 10));
-  const [to,   setTo]   = React.useState(today.toISOString().slice(0, 10));
+  // Local YYYY-MM-DD (avoid toISOString which converts to UTC and can shift
+  // a day backward for users east of UTC near midnight).
+  const isoDay = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const [from, setFrom] = React.useState(isoDay(firstOfMonth));
+  const [to,   setTo]   = React.useState(isoDay(today));
 
   const inRange = React.useCallback((iso) => {
     const d = new Date(iso); d.setHours(0,0,0,0);
@@ -106,14 +110,10 @@ export default function Rapports() {
 
   return (
     <>
-      <PageHeader title="Rapports" subtitle="Analyse de la performance sur la période sélectionnée.">
-        <button className="btn-secondary" onClick={() => alert('Export PDF — à venir')}>
-          <FileDown size={16}/> PDF
-        </button>
-        <button className="btn-secondary" onClick={() => alert('Export Excel — à venir')}>
-          <FileSpreadsheet size={16}/> Excel
-        </button>
-      </PageHeader>
+      {/* Export buttons removed pre-launch — they were alert() stubs.
+          Re-enable once a real PDF/Excel export pipeline ships (server-side
+          via Edge Function + jspdf or similar). */}
+      <PageHeader title="Rapports" subtitle="Analyse de la performance sur la période sélectionnée."/>
 
       <div className="px-8 py-6 space-y-6">
         <div className="card p-4 flex flex-wrap items-end gap-4">

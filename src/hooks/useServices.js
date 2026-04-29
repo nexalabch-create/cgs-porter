@@ -25,6 +25,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const fromRow = (r) => ({
   id: r.id,
   flight: r.flight,
+  scheduledAt: r.scheduled_at,                      // raw ISO — used by Profile for date filtering
   time: new Date(r.scheduled_at).toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' }),
   client: r.client_name,
   meeting: r.meeting_point,
@@ -135,27 +136,42 @@ export function useServices(initial = []) {
 
   // Mutations — write through to Supabase when online; always update local state
   // optimistically so the UI feels instant.
-  const assignPorter = React.useCallback(async (serviceId, porterId) => {
-    // Defensive validation: assigned_porter_id is uuid in BD. If a string
-    // demo ID slipped through (race condition with useUsers), bail out
-    // visibly instead of optimistically lying to the UI.
+  //
+  // `claimOnly` (porter self-claim path): the UPDATE only succeeds if the row
+  // is still unassigned at the moment the database evaluates it. Without this
+  // precondition, two porters tapping "Je prends" simultaneously both pass
+  // RLS and the second UPDATE silently overwrites the first — the loser's UI
+  // shows "claimed" but the row belongs to the winner. With `.is('assigned_porter_id', null)`
+  // Postgres returns 0 rows for the loser, we detect that and roll back.
+  const assignPorter = React.useCallback(async (serviceId, porterId, opts = {}) => {
+    const { claimOnly = false } = opts;
     if (isOnline && !UUID_RE.test(String(porterId))) {
       console.warn('[useServices] refused non-UUID porterId:', porterId);
       return { error: 'invalid_porter_id', detail: `expected UUID, got "${porterId}"` };
     }
-    setServices((arr) => arr.map((s) => s.id === serviceId ? { ...s, assignedPorterId: porterId } : s));
+    // Snapshot the current value so we can roll back precisely (the row may
+    // have been pre-assigned to someone else for the chef-reassign path).
+    let prev = null;
+    setServices((arr) => {
+      const found = arr.find((s) => s.id === serviceId);
+      prev = found ? found.assignedPorterId : null;
+      return arr.map((s) => s.id === serviceId ? { ...s, assignedPorterId: porterId } : s);
+    });
     if (!isOnline) return { ok: true };
     const sb = await getSupabase();
     if (!sb) return { ok: true };
-    const { error } = await sb
-      .from('services')
-      .update({ assigned_porter_id: porterId })
-      .eq('id', serviceId);
+    let q = sb.from('services').update({ assigned_porter_id: porterId }).eq('id', serviceId);
+    if (claimOnly) q = q.is('assigned_porter_id', null);
+    const { data, error } = await q.select('id');
     if (error) {
-      // Roll back the optimistic update so UI matches reality.
-      setServices((arr) => arr.map((s) => s.id === serviceId ? { ...s, assignedPorterId: null } : s));
+      setServices((arr) => arr.map((s) => s.id === serviceId ? { ...s, assignedPorterId: prev } : s));
       console.warn('[useServices] assign failed', error);
       return { error: error.code || 'assign_failed', detail: error.message };
+    }
+    if (claimOnly && (!data || data.length === 0)) {
+      // Lost the race — someone else got there first.
+      setServices((arr) => arr.map((s) => s.id === serviceId ? { ...s, assignedPorterId: prev } : s));
+      return { error: 'already_claimed', detail: 'Quelqu’un d’autre a déjà pris ce service.' };
     }
     return { ok: true };
   }, [isOnline]);

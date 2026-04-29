@@ -13,30 +13,75 @@ const todayIso = () => {
 };
 const TODAY_DEFAULT = todayIso();
 
+// Compute the Europe/Zurich UTC offset on a given calendar date. Geneva is
+// CEST (+02:00) from late March to late October and CET (+01:00) the rest of
+// the year. The previous hardcoded `+02:00` silently shifted winter imports
+// by one hour. Robust enough for our purposes: ask Intl for the timezone
+// short-name on that exact date.
+function zurichOffsetFor(dateStr) {
+  try {
+    const d = new Date(`${dateStr}T12:00:00Z`);
+    const tzName = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Europe/Zurich', timeZoneName: 'short',
+    }).formatToParts(d).find(p => p.type === 'timeZoneName')?.value;
+    return tzName === 'CEST' ? '+02:00' : '+01:00';
+  } catch { return '+01:00'; }
+}
+
+// Tolerant time parser. Accepts "9:30", "09:30", "9.30", "13:0", "13".
+// Returns "HH:MM" or null if unparseable.
+function parseTime(raw) {
+  if (raw == null) return null;
+  const s = String(raw).trim().replace(/\./g, ':');
+  if (!s) return null;
+  const m = s.match(/^(\d{1,2}):?(\d{0,2})$/);
+  if (!m) return null;
+  const h = Math.min(23, Math.max(0, Number(m[1])));
+  const mn = m[2] ? Math.min(59, Math.max(0, Number(m[2]))) : 0;
+  return `${String(h).padStart(2,'0')}:${String(mn).padStart(2,'0')}`;
+}
+
 // Map a CSV row from the daily-services sheet onto a public.services insert.
+// Returns { ok: true, row } on success, or { ok: false, errors } with a list
+// of human-readable French error strings for the preview.
 function rowToService(row, dateStr) {
-  // Combine date + RDV (HH:MM) into a timestamptz.
-  const rdv = (row.rdv || '').replace(/\./g, ':').slice(0, 5);
-  const scheduled = `${dateStr}T${rdv}:00+02:00`;
-  const direction = (row.direction || '').toLowerCase().startsWith('out') ? 'depart' : 'arrivee';
+  const errors = [];
+  const time = parseTime(row.rdv);
+  if (!time) errors.push(`heure RDV invalide ("${row.rdv ?? ''}")`);
+  const flight = (row.flight_number || row.flight || '').trim();
+  if (!flight) errors.push('numéro de vol manquant');
   const source = (row.source || '').toLowerCase().trim();
-  const validSource = ['web', 'dnata', 'swissport', 'prive', 'guichet'].includes(source) ? source : 'dnata';
+  if (!['web', 'dnata', 'swissport', 'prive', 'guichet'].includes(source)) {
+    errors.push(`source invalide ("${row.source ?? ''}") — attendu : web, dnata, swissport, prive, guichet`);
+  }
+  const bagsRaw = row.bags ?? '';
+  const bags = bagsRaw === '' ? 1 : Number(bagsRaw);
+  if (!Number.isFinite(bags) || bags < 1 || bags > 50) {
+    errors.push(`nombre de bagages invalide ("${row.bags ?? ''}")`);
+  }
+  if (errors.length) return { ok: false, errors, raw: row };
+
+  const offset = zurichOffsetFor(dateStr);
+  const direction = (row.direction || '').toLowerCase().startsWith('out') ? 'depart' : 'arrivee';
   return {
-    service_num: row.service_num ? Number(row.service_num) : null,
-    flight: row.flight_number || row.flight || '',
-    scheduled_at: scheduled,
-    client_name: row.client_name || row.client || '—',
-    meeting_point: row.meeting_point || `Terminal ${direction === 'arrivee' ? '1' : '2'}`,
-    bags: row.bags ? Number(row.bags) : 1,
-    base_price_chf: 25,
-    per_bag_price_chf: 12,
-    status: 'todo',
-    agency: source.toUpperCase(),
-    client_phone: row.client_phone || row.phone || '',
-    flow: direction,
-    source: validSource,
-    remarques: row.remarques || row.notes || '',
-    assigned_porter_id: null,
+    ok: true,
+    row: {
+      service_num: row.service_num ? Number(row.service_num) : null,
+      flight,
+      scheduled_at: `${dateStr}T${time}:00${offset}`,
+      client_name: (row.client_name || row.client || '—').trim(),
+      meeting_point: row.meeting_point || `Terminal ${direction === 'arrivee' ? '1' : '2'}`,
+      bags,
+      base_price_chf: 25,
+      per_bag_price_chf: 12,
+      status: 'todo',
+      agency: source.toUpperCase(),
+      client_phone: (row.client_phone || row.phone || '').trim(),
+      flow: direction,
+      source,
+      remarques: (row.remarques || row.notes || '').trim(),
+      assigned_porter_id: null,
+    },
   };
 }
 
@@ -61,18 +106,36 @@ export default function Importer() {
     setParsing(true);
     Papa.parse(f, {
       header: true,
-      skipEmptyLines: true,
+      skipEmptyLines: 'greedy',
+      // Auto-detect delimiter: French Excel exports use `;`, plain CSV uses
+      // `,`. Empty `delimiter: ''` triggers Papa's auto-sniff which works on
+      // both. Older code only handled commas → `;`-files imported as a single
+      // mega-column with `null` everywhere.
+      delimiter: '',
+      // Strip the UTF-8 BOM that Excel inserts on `Save As CSV (UTF-8)` and
+      // lowercase + trim header names so `Flight_Number`, `RDV`, `Source`
+      // (the literal headings in DNATA/Swissport sheets) all map to our
+      // expected snake_case keys without manual intervention.
+      transformHeader: (h) => h.replace(/^﻿/, '').trim().toLowerCase(),
       complete: ({ data, errors }) => {
         setParsing(false);
         if (errors.length) {
-          setError(`Parse error: ${errors[0].message} (line ${errors[0].row})`);
+          setError(`Erreur d'analyse : ${errors[0].message} (ligne ${(errors[0].row ?? 0) + 2})`);
           return;
         }
         if (data.length === 0) {
           setError('CSV vide ou en-têtes manquants.');
           return;
         }
-        setPreview(data);
+        // Validate every row up-front so the user sees per-row red flags
+        // BEFORE clicking Import. Previous flow batched-inserted everything
+        // and Postgres rejected the whole batch on the first bad row with
+        // a cryptic timestamp error and zero hint about which row.
+        const validated = data.map((r, i) => {
+          const result = rowToService(r, date);
+          return { ...result, lineNumber: i + 2, raw: r };
+        });
+        setPreview(validated);
       },
     });
   };
@@ -83,8 +146,18 @@ export default function Importer() {
     handleFile(e.dataTransfer.files[0]);
   };
 
+  const validRows = React.useMemo(
+    () => (preview || []).filter(p => p.ok).map(p => p.row),
+    [preview]
+  );
+  const invalidCount = (preview || []).filter(p => !p.ok).length;
+
   const importNow = async () => {
     if (!preview) return;
+    if (invalidCount > 0) {
+      setError(`${invalidCount} ligne${invalidCount > 1 ? 's' : ''} invalide${invalidCount > 1 ? 's' : ''} — corrige le CSV ou importe seulement les lignes valides.`);
+      return;
+    }
     if (!isSupabaseConfigured) {
       setError("Supabase n'est pas configuré — vérifie .env.local.");
       return;
@@ -92,13 +165,26 @@ export default function Importer() {
     setImporting(true);
     setError(null);
 
-    const rows = preview.map(r => rowToService(r, date));
-    const { data, error: e } = await supabase.from('services').insert(rows).select('id');
+    const { data, error: e } = await supabase.from('services').insert(validRows).select('id');
     setImporting(false);
     if (e) {
-      setError(`Import échoué: ${e.message}`);
+      setError(`Import échoué : ${e.message}`);
       return;
     }
+    setDone({ count: data.length, date });
+    setPreview(null);
+    setFile(null);
+  };
+
+  // Allow user to skip invalid rows and import only the valid ones.
+  const importValidOnly = async () => {
+    if (!preview || validRows.length === 0) return;
+    if (!isSupabaseConfigured) { setError("Supabase n'est pas configuré."); return; }
+    setImporting(true);
+    setError(null);
+    const { data, error: e } = await supabase.from('services').insert(validRows).select('id');
+    setImporting(false);
+    if (e) { setError(`Import échoué : ${e.message}`); return; }
     setDone({ count: data.length, date });
     setPreview(null);
     setFile(null);
@@ -186,19 +272,25 @@ export default function Importer() {
         {/* Step 3 — preview + import */}
         {preview && (
           <div className="card overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between flex-wrap gap-3">
               <div>
                 <h2 className="font-display text-lg font-semibold tracking-tight">
-                  3 · Aperçu — {preview.length} services
+                  3 · Aperçu — {validRows.length} valide{validRows.length > 1 ? 's' : ''}
+                  {invalidCount > 0 ? <span className="text-red-600"> · {invalidCount} en erreur</span> : null}
                 </h2>
                 <p className="text-xs text-muted mt-0.5">
-                  Vérifie avant d'envoyer. Tous les services seront créés en statut <code className="bg-slate-100 px-1 py-0.5 rounded">à faire</code> et sans travailleur assigné.
+                  Vérifie avant d'envoyer. Toutes les lignes valides seront créées en statut <code className="bg-slate-100 px-1 py-0.5 rounded">à faire</code> et sans travailleur assigné.
                 </p>
               </div>
               <div className="flex gap-2">
                 <button onClick={reset} className="btn-secondary"><X size={16}/> Annuler</button>
-                <button onClick={importNow} disabled={importing} className="btn-primary">
-                  {importing ? 'Import…' : <><Sparkles size={16}/> Importer {preview.length} services</>}
+                {invalidCount > 0 && validRows.length > 0 ? (
+                  <button onClick={importValidOnly} disabled={importing} className="btn-secondary">
+                    Importer {validRows.length} valide{validRows.length > 1 ? 's' : ''} (ignorer {invalidCount})
+                  </button>
+                ) : null}
+                <button onClick={importNow} disabled={importing || invalidCount > 0 || validRows.length === 0} className="btn-primary">
+                  {importing ? 'Import…' : <><Sparkles size={16}/> Importer {validRows.length} services</>}
                 </button>
               </div>
             </div>
@@ -206,24 +298,37 @@ export default function Importer() {
               <table className="w-full">
                 <thead className="bg-slate-50 table-head">
                   <tr>
-                    <th>#</th><th>Source</th><th>RDV</th><th>Vol</th><th>Dir.</th><th>Client</th><th>Bag.</th><th>Remarques</th>
+                    <th>Ligne</th><th>#</th><th>Source</th><th>RDV</th><th>Vol</th><th>Dir.</th><th>Client</th><th>Bag.</th><th>Remarques / Erreur</th>
                   </tr>
                 </thead>
                 <tbody className="table-body">
-                  {preview.map((r, i) => (
-                    <tr key={i}>
-                      <td className="font-mono text-xs">{r.service_num}</td>
-                      <td>
-                        <span className="badge bg-slate-100 text-muted uppercase">{r.source}</span>
-                      </td>
-                      <td className="font-mono text-xs">{r.rdv}</td>
-                      <td className="font-display font-semibold">{r.flight_number}</td>
-                      <td><span className={`badge ${r.direction === 'in' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>{r.direction}</span></td>
-                      <td className="text-xs">{r.client_name || '—'}</td>
-                      <td className="text-right tabular-nums">{r.bags || ''}</td>
-                      <td className="text-xs text-muted truncate max-w-[200px]">{r.remarques}</td>
-                    </tr>
-                  ))}
+                  {preview.map((p, i) => {
+                    const r = p.raw || {};
+                    const ok = p.ok;
+                    return (
+                      <tr key={i} className={ok ? '' : 'bg-red-50'}>
+                        <td className="font-mono text-xs text-muted">{p.lineNumber}</td>
+                        <td className="font-mono text-xs">{r.service_num ?? '—'}</td>
+                        <td>
+                          <span className="badge bg-slate-100 text-muted uppercase">{r.source ?? '—'}</span>
+                        </td>
+                        <td className="font-mono text-xs">{r.rdv ?? '—'}</td>
+                        <td className="font-display font-semibold">{r.flight_number || r.flight || '—'}</td>
+                        <td>
+                          <span className={`badge ${(r.direction || '').toLowerCase().startsWith('out') ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'}`}>
+                            {r.direction || '—'}
+                          </span>
+                        </td>
+                        <td className="text-xs">{r.client_name || r.client || '—'}</td>
+                        <td className="text-right tabular-nums">{r.bags || ''}</td>
+                        <td className="text-xs truncate max-w-[260px]">
+                          {ok
+                            ? <span className="text-muted">{r.remarques}</span>
+                            : <span className="text-red-700 font-semibold">⚠ {p.errors.join(' · ')}</span>}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

@@ -2,14 +2,43 @@ import React from 'react';
 import { Icon } from '../components/Icons.jsx';
 import { NotificationBell } from '../components/NotificationsSheet.jsx';
 
+// Convert "HH:MM" → minutes since midnight, comparing against `now`.
+// Returns null if the time has already passed by more than 30 min (no badge),
+// "EN COURS" if within ±5 min, or "DANS Xmin / DANS Xh" otherwise.
+function nextServiceBadge(timeStr, now = new Date()) {
+  if (!timeStr || !/^\d{1,2}:\d{2}$/.test(timeStr)) return null;
+  const [h, m] = timeStr.split(':').map(Number);
+  const target = new Date(now); target.setHours(h, m, 0, 0);
+  const diffMin = Math.round((target - now) / 60000);
+  if (diffMin < -5) return null;
+  if (diffMin <= 5)  return 'EN COURS';
+  if (diffMin < 60)  return `DANS ${diffMin} MIN`;
+  return `DANS ${Math.round(diffMin / 60)} H`;
+}
+
 export default function HomeScreen({
   firstName = 'Mate', nextService, shift, stats,
   unreadCount = 0, onOpenNotifications,
   onOpenService, onOpenPlanning,
+  initials,
 }) {
   // Real "now" — was hardcoded during dev. Demo runs on whatever today is.
   const today = new Date();
   const dateLabel = today.toLocaleDateString('fr-CH', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  // Badge ticks every 60 s so "DANS 35 MIN" actually decreases.
+  const [tick, setTick] = React.useState(0);
+  React.useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 60000);
+    return () => clearInterval(id);
+  }, []);
+  const badge = nextServiceBadge(nextService?.time, new Date());
+  // tick is referenced so the linter doesn't complain — it's used implicitly
+  // to force a re-render on each minute.
+  void tick;
+
+  // Real initials from the user profile (was always rendering "<First>P").
+  const safeInitials = (initials || (firstName?.[0] || 'P')).toUpperCase();
 
   return (
     <div className="fade-enter" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#f7f7fb', minHeight: 0 }}>
@@ -34,7 +63,7 @@ export default function HomeScreen({
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontWeight: 700, color: 'var(--magenta)', fontSize: 14, border: '1.5px solid #fff',
               boxShadow: '0 1px 2px rgba(0,0,0,.06)',
-            }}>{(firstName?.[0] ?? 'P') + 'P'}</div>
+            }}>{safeInitials}</div>
           </div>
         </div>
 
@@ -64,7 +93,14 @@ export default function HomeScreen({
           <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: 'var(--magenta)' }}/>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--magenta)', letterSpacing: '.14em', textTransform: 'uppercase' }}>Votre prochain service</div>
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#047857', background: '#e8f8f1', padding: '3px 8px', borderRadius: 999, letterSpacing: '.06em' }}>DANS 35 MIN</span>
+            {badge && (
+              <span style={{
+                fontSize: 11, fontWeight: 700,
+                color: badge === 'EN COURS' ? '#9b2c2c' : '#047857',
+                background: badge === 'EN COURS' ? '#fee2e2' : '#e8f8f1',
+                padding: '3px 8px', borderRadius: 999, letterSpacing: '.06em',
+              }}>{badge}</span>
+            )}
           </div>
 
           <div style={{ marginTop: 8, display: 'flex', alignItems: 'baseline', gap: 8 }}>
@@ -136,32 +172,23 @@ export default function HomeScreen({
           )}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <button onClick={onOpenPlanning} className="tappable" style={{
-            background: '#fff', border: '1px solid #ececf1', borderRadius: 14,
-            padding: '14px', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
-            display: 'flex', flexDirection: 'column', gap: 8,
-          }}>
-            <div style={{ width: 32, height: 32, borderRadius: 10, background: '#fcecf4', color: 'var(--magenta)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Icon.Calendar size={16}/>
-            </div>
+        {/* Single Planning shortcut. The previous "Revenus" tile was a <button>
+            with no onClick — silent dead-end on tap. Removed pre-launch. */}
+        <button onClick={onOpenPlanning} className="tappable" style={{
+          background: '#fff', border: '1px solid #ececf1', borderRadius: 14,
+          padding: '14px', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
+          display: 'flex', alignItems: 'center', gap: 12,
+        }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: '#fcecf4', color: 'var(--magenta)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Icon.Calendar size={18}/>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Planning</div>
-            <div style={{ fontSize: 12, color: 'var(--muted)' }}>Voir mon mois</div>
-          </button>
-          <button className="tappable" style={{
-            background: '#fff', border: '1px solid #ececf1', borderRadius: 14,
-            padding: '14px', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
-            display: 'flex', flexDirection: 'column', gap: 8,
-          }}>
-            <div style={{ width: 32, height: 32, borderRadius: 10, background: '#eaeaf3', color: 'var(--navy)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Icon.Cash size={16}/>
-            </div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Revenus</div>
-            <div style={{ fontSize: 12, color: 'var(--muted)' }}>Ce mois</div>
-          </button>
-        </div>
+            <div style={{ fontSize: 12, color: 'var(--muted)' }}>Voir mon mois complet</div>
+          </div>
+          <Icon.ChevronRight size={16} color="#c5c5d0"/>
+        </button>
       </div>
     </div>
   );

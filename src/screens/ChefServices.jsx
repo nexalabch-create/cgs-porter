@@ -1,6 +1,6 @@
 import React from 'react';
 import { Icon } from '../components/Icons.jsx';
-import { StatusPill } from './Services.jsx';
+import { StatusPill, LiveIndicator } from './Services.jsx';
 import { NotificationBell } from '../components/NotificationsSheet.jsx';
 import { findPorter, porterDisplayName } from '../data/porters.js';
 
@@ -185,12 +185,7 @@ export default function ChefServicesScreen({ user, services, onOpen, unreadCount
           </span>
         </div>
 
-        <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span className="live-dot"/>
-          <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--muted)' }}>
-            En direct · mis à jour il y a 30s
-          </span>
-        </div>
+        <LiveIndicator/>
 
         <div className="scroll" style={{
           marginTop: 14, display: 'flex', gap: 6, overflowX: 'auto',

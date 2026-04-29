@@ -206,10 +206,36 @@ export default function App() {
   React.useEffect(() => {
     if (!isSupabaseConfigured()) return;            // local-dev only path
     let cancelled = false;
+    let authSub = null;
     (async () => {
       try {
         const sb = await getSupabase();
         if (!sb) { if (!cancelled) setScreen('login'); return; }
+
+        // Listen for auth state transitions:
+        //   · TOKEN_REFRESHED   — session JWT got refreshed automatically;
+        //                         re-fetch profile in case role changed
+        //   · SIGNED_OUT        — session expired or refresh failed;
+        //                         boot user back to login screen
+        // Without this listener, a porter on shift past midnight (when their
+        // JWT expires) would silently lose realtime + every query would
+        // 401 with no UI feedback. They'd think the app is "frozen".
+        const { data } = sb.auth.onAuthStateChange((event, sess) => {
+          if (cancelled) return;
+          if (event === 'SIGNED_OUT') {
+            setUser(null);
+            setScreen('login');
+            return;
+          }
+          if (event === 'TOKEN_REFRESHED' && sess?.user?.id) {
+            // Background re-enrich. Don't block the UI.
+            sb.from('users').select('*').eq('id', sess.user.id).single()
+              .then(({ data: profile }) => { if (profile && !cancelled) setUser(profileToUser(profile)); })
+              .catch(() => {});
+          }
+        });
+        authSub = data?.subscription;
+
         const { data: { session } } = await withTimeout(
           sb.auth.getSession(), 5000, 'getSession',
         );
@@ -245,7 +271,10 @@ export default function App() {
         if (!cancelled) setScreen('login');
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      if (authSub) try { authSub.unsubscribe(); } catch {}
+    };
   }, []);
 
   // Sign in with the real email + password the user typed. The Login screen
@@ -272,9 +301,14 @@ export default function App() {
       const sb = await getSupabase();
       if (!sb) return { ok: false, error: 'Service non disponible. Réessayez plus tard.' };
 
+      // 15s timeout instead of 8s: airport wifi (especially in Terminal 1
+      // parking levels and the 6m basement where porters are often on shift)
+      // can stall TLS handshakes for 8-12s. The previous 8s window kicked
+      // in just as the request was about to succeed, leaving the user
+      // wondering why "Échec de la connexion" showed up after a long wait.
       const { data: authData, error: authErr } = await withTimeout(
         sb.auth.signInWithPassword({ email, password }),
-        8000, 'signIn',
+        15000, 'signIn',
       );
       if (authErr)            return { ok: false, error: frenchAuthError(authErr) };
       if (!authData?.user)    return { ok: false, error: 'Échec de la connexion.' };
@@ -394,8 +428,22 @@ export default function App() {
 
   const selfAssign = (serviceId) => {
     const svc = services.find((s) => s.id === serviceId);
-    assignPorter(serviceId, user.id);
-    if (svc) setToast(`${svc.flight} · ${svc.time} — vous l'avez pris ✨`);
+    // `claimOnly` for porters: the UPDATE will only succeed if the service is
+    // STILL unassigned at the moment the BD evaluates it. Prevents two
+    // porters racing on the same card. Chefs (who reassign) skip this guard.
+    const isPorterClaim = user?.role === 'porter';
+    (async () => {
+      const result = await assignPorter(serviceId, user.id, { claimOnly: isPorterClaim });
+      if (result?.error === 'already_claimed') {
+        setToast('⚠️ Quelqu’un d’autre a déjà pris ce service.');
+        return;
+      }
+      if (result?.error) {
+        setToast(`⚠️ Échec — ${result.detail || result.error}`);
+        return;
+      }
+      if (svc) setToast(`${svc.flight} · ${svc.time} — vous l'avez pris ✨`);
+    })();
   };
 
   // Chef "next unassigned" shortcuts on Home: open assign sheet or take it.
@@ -412,11 +460,27 @@ export default function App() {
     todo: services.filter(s => s.status === 'todo').length,
   };
 
-  // Porter Home stats.
+  // Porter Home stats. "remaining" is now derived from the shift end time
+  // instead of the previous hardcoded "5h" placeholder, and "cash" is the
+  // honest sum of completed services (no more "|| 147" mock fallback that
+  // showed CHF 147 even when the porter had done nothing).
+  const computeRemaining = () => {
+    const end = myShift?.ends_at;  // "HH:MM:SS"
+    if (!end) return '—';
+    const now = new Date();
+    const [h, m] = end.split(':').map(Number);
+    const target = new Date(now); target.setHours(h, m, 0, 0);
+    const diffMin = Math.round((target - now) / 60000);
+    if (diffMin <= 0) return 'Fini';
+    if (diffMin < 60) return `${diffMin}min`;
+    const hours = Math.floor(diffMin / 60);
+    const mins  = diffMin % 60;
+    return mins === 0 ? `${hours}h` : `${hours}h${String(mins).padStart(2,'0')}`;
+  };
   const porterStats = {
     services: myServices.length,
-    remaining: '5h',
-    cash: myServices.filter(s => s.status === 'done').reduce((sum, s) => sum + s.price, 0) || 147,
+    remaining: computeRemaining(),
+    cash: myServices.filter(s => s.status === 'done').reduce((sum, s) => sum + (s.price || 0), 0),
   };
   // Pick the most relevant service to show on the porter's home:
   //   1) currently in progress (active) — the one they're doing right now
@@ -476,6 +540,7 @@ export default function App() {
         {screen === 'home' && user && user.role === 'porter' && porterNext && (
           <HomeScreen
             firstName={user.firstName}
+            initials={user.initials}
             nextService={porterNext}
             shift={shiftFromRow(myShift) || { code: '—', start: '—', end: '—', pause: 0 }}
             stats={porterStats}
@@ -527,7 +592,7 @@ export default function App() {
           <PlanningScreen/>
         )}
         {screen === 'profile' && user && (
-          <ProfileScreen user={user} onLogout={handleLogout}/>
+          <ProfileScreen user={user} services={services} onLogout={handleLogout}/>
         )}
       </div>
       {showTabs && <TabBar active={screen} onChange={setScreen}/>}

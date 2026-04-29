@@ -1,29 +1,44 @@
 import React from 'react';
 import { Icon } from '../components/Icons.jsx';
 
-// Hoisted module-level constants — same identity every render.
-// (Skill: vercel-react-best-practices · rendering-hoist-jsx)
-const HOURS_DONE = 89.5;
-const HOURS_TARGET = 155.75;
-const HOURS_PCT = Math.min(100, (HOURS_DONE / HOURS_TARGET) * 100);
-
-const STATS = [
-  { v: `${HOURS_DONE}`, sub: `/ ${HOURS_TARGET}h`, label: 'Heures ce mois', accent: 'var(--magenta)' },
-  { v: '12',            sub: '/ 22 jours',         label: 'Jours travaillés' },
-  { v: '34',            sub: 'services',           label: 'Complétés' },
-  { v: '1\u00A0240',    sub: 'CHF',                label: 'Générés', accent: 'var(--navy)' },
-];
-
-const RECENT = [
-  { flight: 'AF231',  client: 'M. & Mme Tanaka', time: 'Auj. · 11:15',     amount: 85 },
-  { flight: 'LH1180', client: 'Dr. Schmidt',     time: 'Hier · 17:40',     amount: 49 },
-  { flight: 'EK85',   client: 'Mr. Patel',       time: '23 avril · 09:20', amount: 73 },
-];
-
-export default function ProfileScreen({ user, onLogout }) {
-  const fullName = user ? `${user.firstName} ${user.lastName}` : 'Mate Torgvaidze';
-  const initials = user?.initials || 'MT';
+export default function ProfileScreen({ user, onLogout, services = [] }) {
+  const fullName = user ? `${user.firstName} ${user.lastName}` : '—';
+  const initials = user?.initials || '··';
   const roleLabel = user?.role === 'chef' ? "Chef d'équipe" : 'Travailleur';
+
+  // Compute real stats from the user's own services. Replaced the previous
+  // hardcoded mock (89.5h / 1240 CHF / "AF231 Tanaka") which showed the same
+  // fictional history to every real porter — embarrassing post-launch.
+  const stats = React.useMemo(() => {
+    if (!user?.id) return { count: 0, completed: 0, chf: 0, recent: [] };
+    const now = new Date();
+    const yr = now.getFullYear(), mo = now.getMonth();
+    const mine = services.filter(s => s.assignedPorterId === user.id);
+    const month = mine.filter(s => {
+      const d = s.scheduledAt ? new Date(s.scheduledAt) : null;
+      return d && d.getFullYear() === yr && d.getMonth() === mo;
+    });
+    const completed = month.filter(s => s.status === 'done');
+    const chf = completed.reduce((acc, s) => acc + (s.price || 0), 0);
+    const recent = mine
+      .slice()
+      .sort((a, b) => new Date(b.scheduledAt || 0) - new Date(a.scheduledAt || 0))
+      .slice(0, 3);
+    return { count: month.length, completed: completed.length, chf, recent };
+  }, [services, user?.id]);
+
+  const fmtRecentDate = (iso) => {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    const now = new Date();
+    const sameDay = d.toDateString() === now.toDateString();
+    const yest = new Date(now); yest.setDate(now.getDate() - 1);
+    const isYest = d.toDateString() === yest.toDateString();
+    const time = d.toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' });
+    if (sameDay)  return `Auj. · ${time}`;
+    if (isYest)   return `Hier · ${time}`;
+    return d.toLocaleDateString('fr-CH', { day: 'numeric', month: 'long' }) + ' · ' + time;
+  };
 
   return (
     <div className="fade-enter" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#f7f7fb', minHeight: 0 }}>
@@ -62,78 +77,72 @@ export default function ProfileScreen({ user, onLogout }) {
       </div>
 
       <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '14px 16px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div style={{
-          background: '#fff', border: '1px solid #ececf1', borderRadius: 18,
-          padding: '16px 18px', boxShadow: '0 1px 2px rgba(15,15,40,.04)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Heures ce mois</div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--magenta)', fontVariantNumeric: 'tabular-nums' }}>{Math.round(HOURS_PCT)}%</div>
-          </div>
-          <div style={{ marginTop: 8, display: 'flex', alignItems: 'baseline', gap: 6 }}>
-            <span style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-.025em', fontVariantNumeric: 'tabular-nums' }}>{HOURS_DONE}</span>
-            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>/ {HOURS_TARGET}h</span>
-          </div>
-          <div style={{
-            marginTop: 10, height: 8, background: '#f1f1f5', borderRadius: 999, overflow: 'hidden',
-          }}>
-            <div style={{
-              width: HOURS_PCT + '%', height: '100%',
-              background: 'linear-gradient(90deg, var(--magenta), #ff5fb1)',
-              borderRadius: 999, transition: 'width .4s ease',
-            }}/>
-          </div>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          {STATS.map((s, i) => (
+        {/* Real stats from this porter's own services this calendar month. */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+          {[
+            { v: stats.count,     label: 'Services ce mois', accent: 'var(--magenta)' },
+            { v: stats.completed, label: 'Complétés' },
+            { v: `CHF ${stats.chf}`, label: 'Générés', accent: 'var(--navy)' },
+          ].map((s, i) => (
             <div key={i} style={{
               background: '#fff', border: '1px solid #ececf1', borderRadius: 14,
-              padding: '14px', boxShadow: '0 1px 2px rgba(15,15,40,.04)',
+              padding: '14px 12px', boxShadow: '0 1px 2px rgba(15,15,40,.04)',
             }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', letterSpacing: '.08em', textTransform: 'uppercase' }}>{s.label}</div>
-              <div style={{ marginTop: 6, display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                <span style={{
-                  fontSize: 22, fontWeight: 800, letterSpacing: '-.02em', fontVariantNumeric: 'tabular-nums',
-                  color: s.accent || 'var(--ink)',
-                }}>{s.v}</span>
-                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>{s.sub}</span>
-              </div>
+              <div style={{
+                marginTop: 6, fontSize: 22, fontWeight: 800, letterSpacing: '-.02em', fontVariantNumeric: 'tabular-nums',
+                color: s.accent || 'var(--ink)',
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              }}>{s.v}</div>
             </div>
           ))}
         </div>
 
-        <div style={{
-          background: '#fff', border: '1px solid #ececf1', borderRadius: 18,
-          padding: '4px 18px', boxShadow: '0 1px 2px rgba(15,15,40,.04)',
-        }}>
-          <div style={{ padding: '14px 0 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Derniers services</div>
-            <a href="#" onClick={(e) => e.preventDefault()} style={{ fontSize: 12, color: 'var(--magenta)', fontWeight: 600, textDecoration: 'none' }}>Tout voir</a>
-          </div>
-          {RECENT.map((r, i) => (
-            <div key={i} style={{
-              display: 'flex', alignItems: 'center', gap: 12,
-              padding: '12px 0', borderTop: '1px solid #f1f1f5',
-            }}>
-              <div style={{
-                width: 38, height: 38, borderRadius: 10, background: '#fcecf4', color: 'var(--magenta)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              }}>
-                <Icon.Plane size={16}/>
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-.005em' }}>
-                  {r.flight} <span style={{ color: 'var(--muted)', fontWeight: 500 }}>· {r.client}</span>
-                </div>
-                <div style={{ marginTop: 2, fontSize: 12, color: 'var(--muted)' }}>{r.time}</div>
-              </div>
-              <div style={{
-                fontSize: 13, fontWeight: 800, color: 'var(--navy)', fontVariantNumeric: 'tabular-nums',
-              }}>CHF {r.amount}</div>
+        {stats.recent.length > 0 ? (
+          <div style={{
+            background: '#fff', border: '1px solid #ececf1', borderRadius: 18,
+            padding: '4px 18px', boxShadow: '0 1px 2px rgba(15,15,40,.04)',
+          }}>
+            <div style={{ padding: '14px 0 8px', fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
+              Derniers services
             </div>
-          ))}
-        </div>
+            {stats.recent.map((r, i) => (
+              <div key={r.id || i} style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                padding: '12px 0', borderTop: '1px solid #f1f1f5',
+              }}>
+                <div style={{
+                  width: 38, height: 38, borderRadius: 10, background: '#fcecf4', color: 'var(--magenta)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}>
+                  <Icon.Plane size={16}/>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontSize: 14, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-.005em',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {r.flight} <span style={{ color: 'var(--muted)', fontWeight: 500 }}>· {r.client}</span>
+                  </div>
+                  <div style={{ marginTop: 2, fontSize: 12, color: 'var(--muted)' }}>{fmtRecentDate(r.scheduledAt)}</div>
+                </div>
+                <div style={{
+                  fontSize: 13, fontWeight: 800, color: 'var(--navy)', fontVariantNumeric: 'tabular-nums', flexShrink: 0,
+                }}>CHF {r.price || 0}</div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{
+            background: '#fff', border: '1px dashed #e0e0ea', borderRadius: 18,
+            padding: '28px 20px', textAlign: 'center',
+          }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Aucun service récent</div>
+            <div style={{ marginTop: 4, fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
+              Vos services apparaîtront ici dès que vous en aurez complété.
+            </div>
+          </div>
+        )}
 
         <button onClick={onLogout} className="tappable" style={{
           marginTop: 6, width: '100%', height: 52,
@@ -159,7 +168,7 @@ export default function ProfileScreen({ user, onLogout }) {
           textAlign: 'center', fontSize: 10.5, color: '#b5b5c2',
           letterSpacing: '.06em', fontWeight: 600,
         }}>
-          CGS PORTER · v2.4.1
+          CGS PORTER · v2.5.0
         </div>
       </div>
     </div>

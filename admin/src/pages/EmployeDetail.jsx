@@ -21,7 +21,9 @@ export default function EmployeDetail() {
   // waiting for the next useServicesData() refetch.
   const employee = localOverride && localOverride.id === id ? localOverride : fetchedEmployee;
   const mine = services.filter(s => s.assigned_porter_id === id);
-  const today = new Date('2026-04-25T12:00:00+02:00');
+  // "today" must be the actual current date — was hardcoded to 2026-04-25
+  // which made every employee show 0 services / 0 CHF after April rolled over.
+  const today = new Date();
   const month = mine.filter(s => {
     const d = new Date(s.scheduled_at);
     return d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth();

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Search, UserPlus } from 'lucide-react';
+import { Search } from 'lucide-react';
 import PageHeader from '../components/PageHeader.jsx';
 import { useServicesData } from '../hooks/useServices.js';
 import { formatCHF, totalChf } from '../lib/format.js';
@@ -43,11 +43,13 @@ export default function Employes() {
 
   return (
     <>
+      {/* "Ajouter un employé" CTA removed pre-launch — was a no-op button.
+          Onboarding new employees needs a Supabase Auth invite flow that
+          isn't built yet; rather than ship a broken click target, hide the
+          button entirely. Re-add when create-employee modal lands. */}
       <PageHeader
         title="Employés"
-        subtitle={isLoading ? 'Chargement…' : `${filtered.length} employé${filtered.length > 1 ? 's' : ''}`}>
-        <button className="btn-primary"><UserPlus size={16}/> Ajouter un employé</button>
-      </PageHeader>
+        subtitle={isLoading ? 'Chargement…' : `${filtered.length} employé${filtered.length > 1 ? 's' : ''}`}/>
 
       <div className="px-8 py-6 space-y-4">
         {/* Filter bar — search + role tabs side by side. */}

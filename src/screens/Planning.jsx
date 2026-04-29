@@ -51,16 +51,14 @@ const daysInMonth = (date) =>
   new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
 
 export default function PlanningScreen() {
-  // Default to the current month. (For the demo we land on Mai 2026 because
-  // the test rig has the system clock set to 2026-04-25 → starts on Avril,
-  // user can step right to Mai.)
-  const [cursor, setCursor] = React.useState(() => new Date(2026, 4, 1)); // 2026-05
-  const [selected, setSelected] = React.useState(25); // Mai 25 by default
+  // Anchor to whatever real today is, NOT a hardcoded date — the previous
+  // 2026-04-25 anchor caused "Aucun planning" to show up after April for
+  // every porter (Planning is one of the 4 main tabs, very visible).
+  const TODAY = new Date();
+  const [cursor, setCursor] = React.useState(() => new Date(TODAY.getFullYear(), TODAY.getMonth(), 1));
+  const [selected, setSelected] = React.useState(TODAY.getDate());
   const [sheetOpen, setSheetOpen] = React.useState(false);
 
-  // Anchor "today" to whatever real today is (locked to 2026-04-25 for demo).
-  // Highlighted only when the cursor month matches today's month.
-  const TODAY = new Date(2026, 3, 25);
   const isCurrentMonth =
     cursor.getFullYear() === TODAY.getFullYear() && cursor.getMonth() === TODAY.getMonth();
   const todayDay = isCurrentMonth ? TODAY.getDate() : -1;
