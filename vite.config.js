@@ -8,6 +8,16 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['logo-cgs.png', 'apple-touch-icon.png'],
+      // Activate new Service Worker immediately + claim every open client +
+      // wipe leftover caches from previous builds. Without this, returning
+      // users on an already-installed PWA can keep running an old bundle
+      // long after a fix has shipped — e.g. Marc's phone running the buggy
+      // logout HTTP-abort code path days after the fix was deployed.
+      workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
+      },
       manifest: {
         name: 'CGS Porter',
         short_name: 'CGS Porter',

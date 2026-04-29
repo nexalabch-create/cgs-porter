@@ -1,0 +1,42 @@
+CGS Porter — Identifiants & Accès,,,,,
+,,,,,
+URLs de production,,,,,
+Mobile PWA (Porters),https://cgs-porter-5n7qrl184-nexalabch-creates-projects.vercel.app,,,,
+Admin Panel (Chefs),https://cgs-porter-admin-fu16yihfo-nexalabch-creates-projects.vercel.app,,,,
+,,,,,
+Mot de passe universel,CgsPorter2026!,,,(à changer après le premier login via ‘Mot de passe oublié ?’),
+,,,,,
+Comment se connecter,,,,,
+1. Ouvrir l’URL correspondante (Mobile pour porters / Admin pour chefs),,,,,
+2. L’email est pré-rempli — saisir le mot de passe ci-dessus,,,,,
+3. Cliquer ‘Se connecter’,,,,,
+4. En cas d’oubli : cliquer ‘Mot de passe oublié ?’ → un lien arrive par email,,,,,
+,,,,,
+Nom complet,Rôle,Email,Mot de passe,App autorisée,ID CGS
+Mate Torgvaidze,Chef d’équipe,mate.torgvaidze@cgs-ltd.com,CgsPorter2026!,Admin + Mobile,10865
+Mohamed Afak Dadi,Chef d’équipe,mohamed.afak.dadi@cgs-ltd.com,CgsPorter2026!,Admin + Mobile,2905
+Khalid El Ghazouani,Chef d’équipe,khalid.el.ghazouani@cgs-ltd.com,CgsPorter2026!,Admin + Mobile,2903
+Andrei Serban,Chef d’équipe,andrei.serban@cgs-ltd.com,CgsPorter2026!,Admin + Mobile,2925
+Dercio Veloso,Chef d’équipe,dercio.veloso@cgs-ltd.com,CgsPorter2026!,Admin + Mobile,—
+Safet Filipova,Chef d’équipe,safet.filipova@cgs-ltd.com,CgsPorter2026!,Admin + Mobile,—
+Marc Dubois,Porter,marc.dubois@cgs-ltd.com,CgsPorter2026!,Mobile,0001
+Hamidou Tapsirou Ba,Porter,hamidou.tapsirou.ba@cgs-ltd.com,CgsPorter2026!,Mobile,11119
+Mane Aliou Mane,Porter,mane.aliou.mane@cgs-ltd.com,CgsPorter2026!,Mobile,11100
+Konstantinos Moustakopoulos,Porter,konstantinos.moustakopoulos@cgs-ltd.com,CgsPorter2026!,Mobile,7039
+Juan Carlos Vazquez Pena,Porter,juan.carlos.vazquez.pena@cgs-ltd.com,CgsPorter2026!,Mobile,10013
+Mamadou Yaya Diallo,Porter,mamadou.yaya.diallo@cgs-ltd.com,CgsPorter2026!,Mobile,0505
+Adrien Mickael Lapauw,Porter,adrien.mickael.lapauw@cgs-ltd.com,CgsPorter2026!,Mobile,10930
+Juan Camilo Arteilaez Anorocho,Porter,juan.camilo.arteilaez.anorocho@cgs-ltd.com,CgsPorter2026!,Mobile,10843
+Vilijon Bairami,Porter,vilijon.bairami@cgs-ltd.com,CgsPorter2026!,Mobile,1110
+Imad Moukni,Porter,imad.moukni@cgs-ltd.com,CgsPorter2026!,Mobile,11075
+Moussa Dahbi Boussouf,Porter,moussa.dahbi.boussouf@cgs-ltd.com,CgsPorter2026!,Mobile,2881
+Mielle Lopes Mendes Da Silva,Porter,mielle.lopes.mendes.da.silva@cgs-ltd.com,CgsPorter2026!,Mobile,2207
+Muhammad Ali Malik,Porter,muhammad.ali.malik@cgs-ltd.com,CgsPorter2026!,Mobile,10095
+Burhan Demir,Porter,burhan.demir@cgs-ltd.com,CgsPorter2026!,Mobile,2908
+Buar Raci,Porter,buar.raci@cgs-ltd.com,CgsPorter2026!,Mobile,10604
+Victor Arnulfo Anorocho Guevara,Porter,victor.arnulfo.anorocho.guevara@cgs-ltd.com,CgsPorter2026!,Mobile,2859
+Mohamed Adel Chebâne,Porter,mohamed.adel.chebane@cgs-ltd.com,CgsPorter2026!,Mobile,2920
+Carlos Alexandre Da Cruz Lopes,Porter,carlos.alexandre.da.cruz.lopes@cgs-ltd.com,CgsPorter2026!,Mobile,10844
+Mohamed El Ouardani Yattaoui,Porter,mohamed.el.ouardani.yattaoui@cgs-ltd.com,CgsPorter2026!,Mobile,10928
+Manuel Monteiro Carlos,Porter,manuel.monteiro.carlos@cgs-ltd.com,CgsPorter2026!,Mobile,2855
+Jose Augusto Monteiro Oliveira,Porter,jose.augusto.monteiro.oliveira@cgs-ltd.com,CgsPorter2026!,Mobile,—

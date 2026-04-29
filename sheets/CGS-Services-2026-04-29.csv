@@ -1,0 +1,16 @@
+service_num,source,rdv,flight_number,direction,client_name,bags,remarques
+1,dnata,06:30,EK455,in,Mr. Khalid Al-Mansouri,4,T1 Porte A12 — Emirates VIP Services
+2,swissport,07:15,LX1820,out,Mme Sophie Lefèvre,2,T2 Comptoir First — Swiss First Lounge
+3,dnata,08:00,QR97,in,Mlle Léa Bertrand,1,T1 Bagages — Qatar Privilege Club
+4,prive,09:30,PRIVÉ,in,M. & Mme Tanaka,5,Hall arrivées P3 — Limousine Geneva Privé
+5,swissport,10:15,BA729,out,Mr. Julian Whitford,3,T1 Salon BA — British Airways
+6,dnata,11:05,EK453,out,Mr. Yusuf Bin Rashid,6,T1 Porte A14 — Emirates VIP Services
+7,swissport,11:45,LH1188,out,Dr. Anna Schneider,2,T2 Comptoir Senator — Lufthansa HON Circle
+8,prive,12:30,PRIVÉ,out,Famille Al-Saud,8,Salon VIP P5 — VIP Genève Conciergerie
+9,dnata,13:10,AF231,in,Mr. Elias Rouleau,3,Hall arrivées P2 — Air France Premium
+10,swissport,14:00,LX2811,out,Mme Catherine Jonas,4,T2 Departures — Swiss First Lounge
+11,prive,15:20,PRIVÉ,in,M. Reginald Howe,2,Parking VIP P1 — Geneva Concierge Premium
+12,dnata,16:00,EY63,in,Sheikh Faisal Al-Nahyan,7,T1 Porte A09 — Etihad Diamond First
+13,swissport,17:15,KL1928,out,Mr. Stefan De Vries,2,T2 Salon KL — KLM Premium
+14,prive,18:40,PRIVÉ,in,Mme Isabella Ricci,3,Salon Privé P4 — Privilege Concierge
+15,dnata,21:30,EK456,out,Mr. & Mrs. Al-Thani,5,T1 Porte A12 — Emirates VIP Services

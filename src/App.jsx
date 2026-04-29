@@ -170,15 +170,24 @@ export default function App() {
   React.useEffect(() => {
     if (!latestUnseen) return;
     const p = latestUnseen.payload || {};
-    let msg = '';
+    let next = null;
     if (latestUnseen.type === 'service_assigned') {
-      msg = `Nouveau service : ${p.flight} · ${p.time}`;
+      // Urgent variant + haptic vibration so the porter notices even if the
+      // phone is in their pocket. The 3-pulse pattern is short enough not to
+      // feel like a phone call but distinct from incoming SMS.
+      try { navigator.vibrate?.([220, 100, 220, 100, 220]); } catch {}
+      next = {
+        variant: 'urgent',
+        title: `Nouveau service · ${p.flight || ''} · ${p.time || ''}`.replace(/ ·\s+·/g, ' ·').trim(),
+        subtitle: [p.client, p.meeting].filter(Boolean).join(' · ') || 'Touchez pour voir le détail',
+        duration: 7000,
+      };
     } else if (latestUnseen.type === 'service_started') {
-      msg = `${p.flight} démarré`;
+      next = `${p.flight} démarré`;
     } else if (latestUnseen.type === 'service_completed') {
-      msg = `${p.flight} terminé`;
+      next = `${p.flight} terminé`;
     }
-    if (msg) setToast(msg);
+    if (next) setToast(next);
     dismissLatest();
   }, [latestUnseen, dismissLatest]);
 
