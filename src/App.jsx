@@ -17,11 +17,36 @@ import { useUsers } from './hooks/useUsers.js';
 import { useNotifications } from './hooks/useNotifications.js';
 import { getSupabase, isSupabaseConfigured } from './lib/supabase.js';
 
-const DEMO_EMAIL = {
-  chef:   'mate.torgvaidze@cgs-ltd.com',
-  porter: 'marc.dubois@cgs-ltd.com',
-};
-const DEMO_PASSWORD = 'CgsPorter2026!';
+// Supabase auth errors → user-friendly French messages.
+function frenchAuthError(err) {
+  const msg = String(err?.message || err || '').toLowerCase();
+  if (msg.includes('invalid login credentials') || msg.includes('invalid_credentials')) {
+    return 'E-mail ou mot de passe incorrect.';
+  }
+  if (msg.includes('email not confirmed')) return 'E-mail non confirmé. Contactez votre chef d’équipe.';
+  if (msg.includes('rate limit') || msg.includes('too many')) return 'Trop de tentatives. Réessayez dans quelques minutes.';
+  if (msg.includes('failed to fetch') || msg.includes('network') || msg.includes('networkerror')) {
+    return 'Problème de connexion réseau. Vérifiez votre connexion et réessayez.';
+  }
+  if (msg.startsWith('timeout:')) return 'Connexion trop lente. Réessayez dans un instant.';
+  return 'Échec de la connexion. Réessayez ou contactez votre chef d’équipe.';
+}
+
+// Race a promise against a timeout — `withTimeout(p, 8000, 'signIn')`.
+const withTimeout = (promise, ms, label) => Promise.race([
+  promise,
+  new Promise((_, rej) => setTimeout(() => rej(new Error(`timeout:${label}`)), ms)),
+]);
+
+// Map a Supabase profile row → the shape the rest of the app uses.
+const profileToUser = (profile) => ({
+  id: profile.id,
+  role: profile.role,
+  email: profile.email,
+  firstName: profile.first_name,
+  lastName: profile.last_name,
+  initials: profile.initials,
+});
 
 // Translate a shifts-table row into the shape expected by the home screens.
 const shiftFromRow = (row) => row ? ({
@@ -122,7 +147,10 @@ function TabBar({ active, onChange }) {
 
 export default function App() {
   const [user, setUser] = React.useState(null);
-  const [screen, setScreen] = React.useState('login');
+  // 'boot' = checking for an existing session; 'login' = show login screen;
+  // others = authed app screens. Boot guards against the flicker where the
+  // login screen flashes for ~150 ms before getSession() resolves.
+  const [screen, setScreen] = React.useState(isSupabaseConfigured() ? 'boot' : 'login');
   // useServices switches automatically: real Supabase data + realtime sub when
   // configured, in-memory SAMPLE otherwise.
   const { services, assignPorter, updateService, isOnline } = useServices(SAMPLE);
@@ -160,68 +188,113 @@ export default function App() {
     return realUsers.find((u) => u.id === id) || findDemoPorter(id);
   }, [realUsers]);
 
-  // Sign in via real Supabase Auth so RLS policies work (auth.uid() is set).
-  // RLS on services requires authenticated session — without it the porter
-  // would see an empty list. The Login UI is still a role toggle (demo
-  // shortcut); it submits the matching seed credentials behind the scenes.
-  // Falls back to demo mode (in-memory SAMPLE) when Supabase isn't configured.
-  const handleLogin = async (role) => {
-    // Hard timeout so a stuck network / auth lock never strands the user on
-    // "Connexion…" — after 8s we abandon the BD path and fall through to the
-    // demo fallback, which always reaches a terminal screen.
-    const withTimeout = (promise, ms, label) => Promise.race([
-      promise,
-      new Promise((_, rej) => setTimeout(() => rej(new Error(`timeout:${label}`)), ms)),
-    ]);
-    try {
-      if (isSupabaseConfigured()) {
+  // Restore an existing Supabase session on mount so users stay logged-in across
+  // PWA reloads. If getSession resolves to null (or hangs past 5 s), drop the
+  // user to the login screen — never strand on the boot screen.
+  React.useEffect(() => {
+    if (!isSupabaseConfigured()) return;            // local-dev only path
+    let cancelled = false;
+    (async () => {
+      try {
         const sb = await getSupabase();
-        if (sb) {
-          const email = DEMO_EMAIL[role];
-          const { data: authData, error: authErr } = await withTimeout(
-            sb.auth.signInWithPassword({ email, password: DEMO_PASSWORD }),
-            8000, 'signIn',
-          );
-          if (!authErr && authData?.user) {
-            // Fetch profile row (RLS allows reading own row).
-            const { data: profile } = await withTimeout(
-              sb.from('users').select('*').eq('id', authData.user.id).single(),
-              5000, 'profile',
-            );
-            if (profile) {
-              setUser({
-                id: profile.id,
-                role: profile.role,
-                email: profile.email,
-                firstName: profile.first_name,
-                lastName: profile.last_name,
-                initials: profile.initials,
-              });
-              setScreen('home');
-              return;
-            }
-          } else if (authErr) {
-            console.warn('[handleLogin] auth error', authErr);
-          }
+        if (!sb) { if (!cancelled) setScreen('login'); return; }
+        const { data: { session } } = await withTimeout(
+          sb.auth.getSession(), 5000, 'getSession',
+        );
+        if (cancelled) return;
+        if (!session) { setScreen('login'); return; }
+        const { data: profile } = await withTimeout(
+          sb.from('users').select('*').eq('id', session.user.id).single(),
+          5000, 'profile',
+        );
+        if (cancelled) return;
+        if (!profile) {
+          // Orphan auth user — sign out so the next attempt isn't poisoned.
+          try { await sb.auth.signOut({ scope: 'local' }); } catch {}
+          setScreen('login');
+          return;
         }
+        setUser(profileToUser(profile));
+        setScreen('home');
+      } catch (err) {
+        console.warn('[boot] session restore failed:', err?.message || err);
+        if (!cancelled) setScreen('login');
       }
-      // Demo fallback (no Supabase or auth failed).
-      const id = role === 'chef' ? 'mt' : 'p2';
-      const u = findPorter(id);
-      setUser({ ...u, role });
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Sign in with the real email + password the user typed. The Login screen
+  // surfaces the returned `error` string to the user — we never silently
+  // pretend a failed login succeeded.
+  const handleLogin = async ({ email, password }) => {
+    if (!isSupabaseConfigured()) {
+      // Local-dev escape hatch only — Vercel always has env vars set, so this
+      // branch never runs in production. Looks up the email in the static
+      // sample roster so the dev UI is functional without a backend.
+      const slug = String(email).split('@')[0].toLowerCase();
+      const matched = findDemoPorter(slug === 'mate.torgvaidze' ? 'mt'
+                                   : slug === 'marc.dubois'    ? 'p2'
+                                   : null);
+      if (matched) {
+        setUser({ ...matched, role: slug.startsWith('mate') ? 'chef' : 'porter' });
+        setScreen('home');
+        return { ok: true };
+      }
+      return { ok: false, error: 'Mode démo : utilisateur introuvable.' };
+    }
+
+    try {
+      const sb = await getSupabase();
+      if (!sb) return { ok: false, error: 'Service non disponible. Réessayez plus tard.' };
+
+      const { data: authData, error: authErr } = await withTimeout(
+        sb.auth.signInWithPassword({ email, password }),
+        8000, 'signIn',
+      );
+      if (authErr)            return { ok: false, error: frenchAuthError(authErr) };
+      if (!authData?.user)    return { ok: false, error: 'Échec de la connexion.' };
+
+      const { data: profile, error: profileErr } = await withTimeout(
+        sb.from('users').select('*').eq('id', authData.user.id).single(),
+        5000, 'profile',
+      );
+      if (profileErr || !profile) {
+        // Auth succeeded but no public.users row — orphan account.
+        try { await sb.auth.signOut({ scope: 'local' }); } catch {}
+        return { ok: false, error: 'Compte non configuré. Contactez votre chef d’équipe.' };
+      }
+
+      setUser(profileToUser(profile));
       setScreen('home');
+      return { ok: true };
     } catch (err) {
       console.error('[handleLogin] unhandled exception', err);
-      // Last-resort fallback so the user gets SOMEWHERE — better than a
-      // dead spinner. Falls into demo mode with hardcoded names.
-      setUser({
-        id: role === 'chef' ? 'mt' : 'p2',
-        firstName: role === 'chef' ? 'Mate' : 'Marc',
-        lastName: role === 'chef' ? 'Torgvaidze' : 'Dubois',
-        initials: role === 'chef' ? 'MT' : 'MD',
-        role,
-      });
-      setScreen('home');
+      return { ok: false, error: frenchAuthError(err) };
+    }
+  };
+
+  // Send a password-reset email via Supabase. The link in the email opens
+  // the Supabase-hosted reset page, which redirects back to the PWA on
+  // success — that's good enough for production. We don't need a custom
+  // /reset route in the app for this to work.
+  const handleResetPassword = async (email) => {
+    const trimmed = String(email || '').trim().toLowerCase();
+    if (!trimmed) return { ok: false, error: 'Veuillez saisir votre e-mail.' };
+    if (!isSupabaseConfigured()) return { ok: true };  // demo mode no-op
+    try {
+      const sb = await getSupabase();
+      if (!sb) return { ok: false, error: 'Service non disponible.' };
+      const redirectTo = `${window.location.origin}/`;
+      const { error } = await withTimeout(
+        sb.auth.resetPasswordForEmail(trimmed, { redirectTo }),
+        8000, 'reset',
+      );
+      if (error) return { ok: false, error: frenchAuthError(error) };
+      return { ok: true };
+    } catch (err) {
+      console.error('[handleResetPassword] unhandled', err);
+      return { ok: false, error: frenchAuthError(err) };
     }
   };
 
@@ -329,8 +402,25 @@ export default function App() {
       position: 'relative',
     }}>
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+        {screen === 'boot' && (
+          <div style={{
+            flex: 1, display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center', gap: 18,
+            background: `
+              radial-gradient(ellipse 80% 50% at 50% 0%, rgba(233,30,140,.06), transparent 60%),
+              #fff
+            `,
+          }}>
+            <img src="/logo-cgs.png" alt="CGS" style={{ height: 64, width: 'auto', objectFit: 'contain', opacity: .9 }}/>
+            <span style={{
+              width: 22, height: 22, borderRadius: 999,
+              border: '2.5px solid rgba(233,30,140,.18)', borderTopColor: 'var(--magenta)',
+              animation: 'spin 0.8s linear infinite',
+            }}/>
+          </div>
+        )}
         {screen === 'login' && (
-          <LoginScreen onLogin={handleLogin}/>
+          <LoginScreen onLogin={handleLogin} onResetPassword={handleResetPassword}/>
         )}
 
         {screen === 'home' && user && user.role === 'chef' && (

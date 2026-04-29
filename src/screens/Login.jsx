@@ -1,40 +1,72 @@
 import React from 'react';
 import { Icon } from '../components/Icons.jsx';
 
-// Hoisted out of render — same reference every time. (Skill · rerender-memo-with-default-value)
-const ROLE_TABS = [
-  { id: 'porter', label: 'Porteur' },
-  { id: 'chef',   label: "Chef d\u2019équipe" },
-];
-const DEFAULT_EMAIL = {
-  chef:   'mate.torgvaidze@cgs-ltd.com',
-  porter: 'marc.dubois@cgs-ltd.com',
-};
+const LAST_EMAIL_KEY = 'cgs.lastEmail';
+// Default placeholder when no previous login is remembered. Lets the
+// porter (or chef) just type the password and tap "Se connecter" the
+// first time, without having to remember the full email format.
+const DEFAULT_EMAIL = 'marc.dubois@cgs-ltd.com';
 
-export default function LoginScreen({ onLogin }) {
-  const [role, setRole] = React.useState('porter');
-  // User can edit the email; track the "dirty" state separately from the role-derived default.
-  // (Skill · rerender-derived-state-no-effect — avoid mirroring derivable values into state.)
-  const [emailOverride, setEmailOverride] = React.useState(null);
-  const email = emailOverride ?? DEFAULT_EMAIL[role];
-  const [password, setPassword] = React.useState('••••••••••');
+export default function LoginScreen({ onLogin, onResetPassword }) {
+  const [email, setEmail] = React.useState(() => {
+    try { return localStorage.getItem(LAST_EMAIL_KEY) || DEFAULT_EMAIL; }
+    catch { return DEFAULT_EMAIL; }
+  });
+  const [password, setPassword] = React.useState('');
   const [showPw, setShowPw] = React.useState(false);
   const [focused, setFocused] = React.useState(null);
   const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState(null);
+
+  // Reset-password sub-flow.
+  const [resetMode, setResetMode] = React.useState(false);
+  const [resetSent, setResetSent] = React.useState(false);
+  const [resetSending, setResetSending] = React.useState(false);
 
   const submit = async (e) => {
-    // Defensive against iOS PWA quirks where the form's onSubmit can fail
-    // to fan out the click. Also handle being invoked directly from the
-    // button's onClick (no event object) without crashing.
     if (e) { e.preventDefault?.(); e.stopPropagation?.(); }
-    if (loading) return;            // already in flight, ignore double-taps
+    if (loading) return;
+    setError(null);
+
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!trimmedEmail) { setError('Veuillez saisir votre e-mail.'); return; }
+    if (!password)     { setError('Veuillez saisir votre mot de passe.'); return; }
+
     setLoading(true);
     try {
-      await onLogin(role);
+      const result = await onLogin({ email: trimmedEmail, password });
+      if (result && result.ok === false) {
+        setError(result.error || 'Échec de la connexion.');
+      } else if (result && result.ok) {
+        try { localStorage.setItem(LAST_EMAIL_KEY, trimmedEmail); } catch {}
+      }
     } catch (err) {
       console.error('[Login.submit] unhandled', err);
+      setError('Erreur inattendue. Réessayez dans un instant.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const sendReset = async (e) => {
+    if (e) { e.preventDefault?.(); e.stopPropagation?.(); }
+    if (resetSending) return;
+    setError(null);
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed) { setError('Veuillez saisir votre e-mail.'); return; }
+    setResetSending(true);
+    try {
+      const r = await onResetPassword?.(trimmed);
+      if (r && r.ok === false) {
+        setError(r.error || 'Échec de l’envoi.');
+      } else {
+        setResetSent(true);
+      }
+    } catch (err) {
+      console.error('[Login.sendReset] unhandled', err);
+      setError('Erreur inattendue. Réessayez dans un instant.');
+    } finally {
+      setResetSending(false);
     }
   };
 
@@ -51,8 +83,6 @@ export default function LoginScreen({ onLogin }) {
     <div className="fade-enter" style={{
       flex: 1, display: 'flex', flexDirection: 'column',
       padding: 'calc(env(safe-area-inset-top, 0px) + 12px) 28px 28px',
-      // Atmospheric magenta-tinted radial gradient — subtle depth without disrupting form legibility.
-      // (Skill: frontend-design — backgrounds should create atmosphere, not default to solid colors.)
       background: `
         radial-gradient(ellipse 80% 50% at 50% 0%, rgba(233, 30, 140, 0.08), transparent 60%),
         radial-gradient(ellipse 60% 40% at 50% 100%, rgba(26, 26, 94, 0.04), transparent 70%),
@@ -75,118 +105,215 @@ export default function LoginScreen({ onLogin }) {
         }}>Porter Service GVA</h1>
         <p style={{
           margin: '10px 0 0', fontSize: 14, color: 'var(--muted)', lineHeight: 1.5,
-        }}>Connectez-vous pour accéder à vos services du jour.</p>
+        }}>
+          {resetMode
+            ? 'Saisissez votre e-mail pour recevoir un lien de réinitialisation.'
+            : 'Connectez-vous pour accéder à vos services du jour.'}
+        </p>
       </div>
 
-      <div style={{
-        marginTop: 24, display: 'flex', gap: 4, padding: 4,
-        background: '#f6f6fa', borderRadius: 12,
-      }}>
-        {ROLE_TABS.map(r => {
-          const a = role === r.id;
-          return (
-            <button key={r.id} type="button" onClick={() => setRole(r.id)} className="tappable" style={{
-              flex: 1, height: 36, border: 0, borderRadius: 9,
-              background: a ? '#fff' : 'transparent',
-              color: a ? 'var(--magenta)' : 'var(--muted)',
-              fontFamily: 'inherit', fontWeight: 700, fontSize: 13, letterSpacing: '-.005em',
-              cursor: 'pointer',
-              boxShadow: a ? '0 1px 3px rgba(15,15,40,.08)' : 'none',
-            }}>{r.label}</button>
-          );
-        })}
-      </div>
+      {!resetMode ? (
+        <form onSubmit={submit} style={{ marginTop: 28, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-.005em' }}>E-mail</span>
+            <div style={fieldWrap('email')}>
+              <Icon.Mail color="#9b9bab"/>
+              <input
+                type="email"
+                inputMode="email"
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); if (error) setError(null); }}
+                onFocus={() => setFocused('email')}
+                onBlur={() => setFocused(null)}
+                placeholder="prenom.nom@cgs-ltd.com"
+                autoComplete="username"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                style={{
+                  flex: 1, border: 0, outline: 'none', background: 'transparent',
+                  fontFamily: 'inherit', fontSize: 15, color: 'var(--ink)', minWidth: 0,
+                }}
+              />
+            </div>
+          </label>
 
-      <form onSubmit={submit} style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-.005em' }}>E-mail</span>
-          <div style={fieldWrap('email')}>
-            <Icon.Mail color="#9b9bab"/>
-            <input
-              type="email" value={email}
-              onChange={(e) => setEmailOverride(e.target.value)}
-              onFocus={() => setFocused('email')}
-              onBlur={() => setFocused(null)}
-              placeholder="prenom.nom@cgs-ltd.com"
-              autoComplete="email"
-              style={{
-                flex: 1, border: 0, outline: 'none', background: 'transparent',
-                fontFamily: 'inherit', fontSize: 15, color: 'var(--ink)', minWidth: 0,
-              }}
-            />
-          </div>
-        </label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>Mot de passe</span>
+            <div style={fieldWrap('pw')}>
+              <Icon.Lock color="#9b9bab"/>
+              <input
+                type={showPw ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => { setPassword(e.target.value); if (error) setError(null); }}
+                onFocus={() => setFocused('pw')}
+                onBlur={() => setFocused(null)}
+                autoComplete="current-password"
+                placeholder="••••••••"
+                style={{
+                  flex: 1, border: 0, outline: 'none', background: 'transparent',
+                  fontFamily: 'inherit', fontSize: 15, color: 'var(--ink)', minWidth: 0,
+                }}
+              />
+              <button type="button" onClick={() => setShowPw(s => !s)} aria-label={showPw ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                style={{ border: 0, background: 'transparent', padding: 4, cursor: 'pointer', color: '#9b9bab' }}>
+                <Icon.Eye/>
+              </button>
+            </div>
+          </label>
 
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>Mot de passe</span>
-          <div style={fieldWrap('pw')}>
-            <Icon.Lock color="#9b9bab"/>
-            <input
-              type={showPw ? 'text' : 'password'} value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onFocus={() => setFocused('pw')}
-              onBlur={() => setFocused(null)}
-              autoComplete="current-password"
+          {error ? (
+            <div role="alert" style={{
+              fontSize: 13, color: '#b00020', background: '#fdecef',
+              border: '1px solid #f7c1cb', borderRadius: 10, padding: '10px 12px',
+              lineHeight: 1.4,
+            }}>
+              {error}
+            </div>
+          ) : null}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="tappable"
+            onTouchEnd={(e) => {
+              // iOS PWA shells sometimes swallow click events; touchend ensures
+              // the submit always reaches us. We prevent default to avoid the
+              // click being fired twice afterwards.
+              e.preventDefault?.();
+              if (!loading) submit(e);
+            }}
+            style={{
+              marginTop: 8, height: 54, border: 0, borderRadius: 14,
+              background: loading
+                ? 'linear-gradient(135deg, #f9a4cf 0%, #d889b6 100%)'
+                : 'linear-gradient(135deg, #f23ba0 0%, #c2127a 100%)',
+              color: '#fff',
+              fontFamily: 'inherit', fontWeight: 700, fontSize: 16, letterSpacing: '-.005em',
+              cursor: loading ? 'wait' : 'pointer',
+              boxShadow: '0 10px 24px -10px rgba(233,30,140,.65), inset 0 1px 0 rgba(255,255,255,.25)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+              transition: 'background .15s ease',
+            }}>
+            {loading && (
+              <span style={{
+                width: 18, height: 18, borderRadius: 999,
+                border: '2.5px solid rgba(255,255,255,.35)', borderTopColor: '#fff',
+                animation: 'spin 0.8s linear infinite',
+              }}/>
+            )}
+            {loading ? 'Connexion…' : 'Se connecter'}
+          </button>
+
+          <div style={{ textAlign: 'center', marginTop: 4 }}>
+            <button
+              type="button"
+              onClick={() => { setResetMode(true); setError(null); setResetSent(false); }}
               style={{
-                flex: 1, border: 0, outline: 'none', background: 'transparent',
-                fontFamily: 'inherit', fontSize: 15, color: 'var(--ink)', minWidth: 0,
-                letterSpacing: showPw ? 'normal' : '.15em',
-              }}
-            />
-            <button type="button" onClick={() => setShowPw(s => !s)} aria-label="Afficher"
-              style={{ border: 0, background: 'transparent', padding: 4, cursor: 'pointer', color: '#9b9bab' }}>
-              <Icon.Eye/>
+                border: 0, background: 'transparent', padding: 8, cursor: 'pointer',
+                fontSize: 13, color: 'var(--magenta)', fontWeight: 600,
+                fontFamily: 'inherit',
+              }}>
+              Mot de passe oublié ?
             </button>
           </div>
-        </label>
+        </form>
+      ) : (
+        <div style={{ marginTop: 28, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {resetSent ? (
+            <div role="status" style={{
+              fontSize: 13, color: '#0a6b3b', background: '#e8f6ee',
+              border: '1px solid #b9e0c8', borderRadius: 10, padding: '12px 14px',
+              lineHeight: 1.45,
+            }}>
+              Lien envoyé à <strong>{email.trim().toLowerCase()}</strong>. Vérifiez votre boîte
+              de réception (et les spams).
+            </div>
+          ) : (
+            <form onSubmit={sendReset} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>E-mail</span>
+                <div style={fieldWrap('reset-email')}>
+                  <Icon.Mail color="#9b9bab"/>
+                  <input
+                    type="email"
+                    inputMode="email"
+                    value={email}
+                    onChange={(e) => { setEmail(e.target.value); if (error) setError(null); }}
+                    onFocus={() => setFocused('reset-email')}
+                    onBlur={() => setFocused(null)}
+                    placeholder="prenom.nom@cgs-ltd.com"
+                    autoComplete="username"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    style={{
+                      flex: 1, border: 0, outline: 'none', background: 'transparent',
+                      fontFamily: 'inherit', fontSize: 15, color: 'var(--ink)', minWidth: 0,
+                    }}
+                  />
+                </div>
+              </label>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
-          <a href="#" onClick={(e) => e.preventDefault()} style={{
-            fontSize: 13, color: 'var(--magenta)', textDecoration: 'none', fontWeight: 600,
-          }}>Mot de passe oublié ?</a>
-        </div>
+              {error ? (
+                <div role="alert" style={{
+                  fontSize: 13, color: '#b00020', background: '#fdecef',
+                  border: '1px solid #f7c1cb', borderRadius: 10, padding: '10px 12px',
+                  lineHeight: 1.4,
+                }}>
+                  {error}
+                </div>
+              ) : null}
 
-        <button
-          type="button"
-          disabled={loading}
-          className="tappable"
-          onClick={submit}
-          onTouchEnd={(e) => {
-            // iOS Safari belt-and-suspenders: some PWA shells swallow click
-            // when touch-action: manipulation is on. onTouchEnd ensures the
-            // tap always reaches the handler.
-            e.preventDefault?.();
-            if (!loading) submit(e);
-          }}
-          style={{
-            marginTop: 14, height: 54, border: 0, borderRadius: 14,
-            background: loading
-              ? 'linear-gradient(135deg, #f9a4cf 0%, #d889b6 100%)'
-              : 'linear-gradient(135deg, #f23ba0 0%, #c2127a 100%)',
-            color: '#fff',
-            fontFamily: 'inherit', fontWeight: 700, fontSize: 16, letterSpacing: '-.005em',
-            cursor: loading ? 'wait' : 'pointer',
-            boxShadow: '0 10px 24px -10px rgba(233,30,140,.65), inset 0 1px 0 rgba(255,255,255,.25)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-            transition: 'background .15s ease',
-          }}>
-          {loading && (
-            <span style={{
-              width: 18, height: 18, borderRadius: 999,
-              border: '2.5px solid rgba(255,255,255,.35)', borderTopColor: '#fff',
-              animation: 'spin 0.8s linear infinite',
-            }}/>
+              <button
+                type="submit"
+                disabled={resetSending}
+                className="tappable"
+                style={{
+                  marginTop: 4, height: 54, border: 0, borderRadius: 14,
+                  background: resetSending
+                    ? 'linear-gradient(135deg, #f9a4cf 0%, #d889b6 100%)'
+                    : 'linear-gradient(135deg, #f23ba0 0%, #c2127a 100%)',
+                  color: '#fff',
+                  fontFamily: 'inherit', fontWeight: 700, fontSize: 16, letterSpacing: '-.005em',
+                  cursor: resetSending ? 'wait' : 'pointer',
+                  boxShadow: '0 10px 24px -10px rgba(233,30,140,.65), inset 0 1px 0 rgba(255,255,255,.25)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                  transition: 'background .15s ease',
+                }}>
+                {resetSending && (
+                  <span style={{
+                    width: 18, height: 18, borderRadius: 999,
+                    border: '2.5px solid rgba(255,255,255,.35)', borderTopColor: '#fff',
+                    animation: 'spin 0.8s linear infinite',
+                  }}/>
+                )}
+                {resetSending ? 'Envoi…' : 'Envoyer le lien'}
+              </button>
+            </form>
           )}
-          {loading ? 'Connexion…' : 'Se connecter'}
-        </button>
-      </form>
+
+          <div style={{ textAlign: 'center', marginTop: 4 }}>
+            <button
+              type="button"
+              onClick={() => { setResetMode(false); setError(null); setResetSent(false); }}
+              style={{
+                border: 0, background: 'transparent', padding: 8, cursor: 'pointer',
+                fontSize: 13, color: 'var(--muted)', fontWeight: 600,
+                fontFamily: 'inherit',
+              }}>
+              ← Retour à la connexion
+            </button>
+          </div>
+        </div>
+      )}
 
       <div style={{ flex: 1 }}/>
       <div style={{
         textAlign: 'center', fontSize: 11, color: '#aaaab8', letterSpacing: '.04em',
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       }}>
-        CGS Porter · v2.4.1 · Zürich · Genève · Basel
+        CGS Porter · v2.5.0 · Zürich · Genève · Basel
       </div>
     </div>
   );

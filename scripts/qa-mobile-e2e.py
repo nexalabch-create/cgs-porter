@@ -54,14 +54,22 @@ with sync_playwright() as p:
 
     # ── 1. Login ───────────────────────────────────────────────────────
     print("\n1) Login (porter mode)")
+    PORTER_EMAIL = "marc.dubois@cgs-ltd.com"
+    CHEF_EMAIL   = "mate.torgvaidze@cgs-ltd.com"
+    PASSWORD     = "CgsPorter2026!"
+
     step("nav /", lambda: (page.goto(MOBILE_URL, wait_until="networkidle", timeout=30000), None)[1])
     step("CGS logo visible", lambda: expect(page.locator("img[alt='CGS']").first).to_be_visible())
     step("'Porter Service GVA' h1", lambda: expect(page.get_by_role("heading", name="Porter Service GVA")).to_be_visible())
-    step("[Porteur | Chef] toggle", lambda: expect(page.get_by_role("button", name="Porteur")).to_be_visible())
+    step("email + password fields present",
+         lambda: expect(page.locator('input[type="email"]')).to_be_visible() or
+                 expect(page.locator('input[type="password"]')).to_be_visible())
     step("'Se connecter' magenta button", lambda: expect(page.get_by_role("button", name="Se connecter")).to_be_visible())
     shot(page, "01-login.png")
 
-    # Submit login as porter (default)
+    # Submit login as porter
+    page.locator('input[type="email"]').fill(PORTER_EMAIL)
+    page.locator('input[type="password"]').fill(PASSWORD)
     page.get_by_role("button", name="Se connecter").click()
     # Wait until we leave the login screen (greeting appears).
     page.wait_for_function(
@@ -140,10 +148,11 @@ with sync_playwright() as p:
 
     # ── 5. Login as chef ───────────────────────────────────────────────
     print("\n5) Login (chef mode)")
-    # The label uses a curly apostrophe (U+2019) — use a regex to match either.
     import re as _re
-    page.get_by_role("button", name=_re.compile(r"Chef d.{1,2}équipe")).click()
-    page.wait_for_timeout(300)
+    page.locator('input[type="email"]').fill("")
+    page.locator('input[type="email"]').fill(CHEF_EMAIL)
+    page.locator('input[type="password"]').fill("")
+    page.locator('input[type="password"]').fill(PASSWORD)
     page.get_by_role("button", name="Se connecter").click()
     # Wait for chef home greeting.
     page.wait_for_function(

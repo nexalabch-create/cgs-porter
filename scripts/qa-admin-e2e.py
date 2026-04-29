@@ -60,12 +60,13 @@ def main():
         step("nav /login", lambda: (page.goto(f"{ADMIN_URL}/login", wait_until="networkidle", timeout=30000), None)[1])
         step("'Connexion' heading visible", lambda: expect(page.get_by_role("heading", name="Connexion")).to_be_visible(timeout=5000))
         step("CGS logo present", lambda: expect(page.locator("img[alt='CGS']").first).to_be_visible())
-        step("email input prefilled", lambda: expect(page.locator("input[type='email']")).to_have_value(EMAIL))
+        step("email input present", lambda: expect(page.locator("input[type='email']")).to_be_visible())
         step("'Se connecter' button", lambda: expect(page.get_by_role("button", name="Se connecter")).to_be_visible())
         shot(page, "01-login.png")
 
         # ── 2. Login flow ──────────────────────────────────────────────
         print("\n2) Login submit")
+        page.locator("input[type='email']").fill(EMAIL)
         page.locator("input[type='password']").fill(PASSWORD)
         try:
             page.get_by_role("button", name="Se connecter").click()
