@@ -308,21 +308,24 @@ export default function App() {
     setAssignTargetId(null);
     setActiveId(null);
     if (isSupabaseConfigured()) {
+      // We intentionally do NOT call sb.auth.signOut() here. That call fires
+      // an HTTP request to /auth/v1/logout, which gets aborted by the reload
+      // below. The aborted request leaves the Supabase backend in a state
+      // where the next signInWithPassword (e.g. another user logging in on
+      // the same device) returns 200 OK over HTTP but never resolves its
+      // Promise — a deadlock that strands the login screen for 8 s+ until
+      // our watchdog fires. Clearing storage + reloading is functionally
+      // equivalent to a local-scope signOut without the HTTP side-effect.
       try {
-        const sb = await getSupabase();
-        // scope:'local' clears storage + emits SIGNED_OUT synchronously, no
-        // HTTP. Prevents the race where a global /auth/v1/logout in flight
-        // gets aborted by the next signInWithPassword and leaves the auth
-        // lock half-held, stranding the Login screen on "Connexion…" forever.
-        if (sb) await sb.auth.signOut({ scope: 'local' });
-      } catch (e) {
-        console.warn('[handleLogout] signOut failed (state already reset):', e);
-      }
-      // Hard reload to nuke ALL client-side state (Supabase GoTrueClient,
-      // realtime subscriptions, React tree). Without this, signing in as a
-      // different user on the same device hangs because the previous session's
-      // GoTrueClient retains stale internal state. The reload takes ~300 ms on
-      // a phone — invisible to the user, who already expects a transition.
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const k = localStorage.key(i);
+          if (k && (k.startsWith('sb-') || k.includes('supabase'))) localStorage.removeItem(k);
+        }
+        for (let i = sessionStorage.length - 1; i >= 0; i--) {
+          const k = sessionStorage.key(i);
+          if (k && (k.startsWith('sb-') || k.includes('supabase'))) sessionStorage.removeItem(k);
+        }
+      } catch {}
       try { window.location.reload(); } catch {}
     }
   };

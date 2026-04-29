@@ -35,11 +35,13 @@ export async function getSupabase() {
         auth: {
           persistSession: true,
           autoRefreshToken: true,
-          // No-op lock — bypasses the navigator.locks lock manager that
-          // strands signInWithPassword's Promise after a prior signOut
-          // (HTTP resolves but JS never resumes). Safe for our single-tab
-          // PWA demo: there are no concurrent tabs racing on the auth token.
-          lock: async (_name, _timeout, fn) => fn(),
+          // We previously injected a no-op lock to bypass an apparent
+          // navigator.locks deadlock on the FIRST login after page load.
+          // It turned out to make a SECOND login (after logout in the same
+          // tab) deadlock instead — the auth/v1/token POST returns 200 OK
+          // but the SDK's Promise never resolves. We now hard-reload the
+          // page on logout, which fully resets the lock state, so the
+          // default lock works correctly for both first and second logins.
         },
         realtime: { params: { eventsPerSecond: 5 } },
       });

@@ -158,13 +158,22 @@ export function AuthProvider({ children }) {
     // scope:'local' clears storage + emits SIGNED_OUT synchronously, no HTTP.
     // Avoids the race where a global signOut in flight gets aborted by the
     // next signIn and leaves the auth lock half-held.
-    try { await supabase.auth.signOut({ scope: 'local' }); } catch (e) {
-      console.warn('[useAuth.signOut] failed:', e?.message || e);
-      setUser(null); setProfile(null); setStatus('guest');
-    }
-    // Hard reload — same reasoning as mobile: nukes the GoTrueClient + all
-    // realtime subs so the next user (or same user re-logging in) gets a
-    // fresh state. Without this, sign-in immediately after sign-out can hang.
+    // We intentionally do NOT call sb.auth.signOut() — its HTTP request to
+    // /auth/v1/logout gets aborted by the navigation below, and the abort
+    // leaves the next signInWithPassword in a deadlock (200 OK response but
+    // Promise never resolves). Clearing storage + navigating is functionally
+    // equivalent for scope:'local' without the HTTP side-effect.
+    try {
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (k && (k.startsWith('sb-') || k.includes('supabase'))) localStorage.removeItem(k);
+      }
+      for (let i = sessionStorage.length - 1; i >= 0; i--) {
+        const k = sessionStorage.key(i);
+        if (k && (k.startsWith('sb-') || k.includes('supabase'))) sessionStorage.removeItem(k);
+      }
+    } catch {}
+    setUser(null); setProfile(null); setStatus('guest');
     try { window.location.assign('/login'); } catch {}
   };
 
