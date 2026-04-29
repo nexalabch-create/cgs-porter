@@ -45,13 +45,15 @@ function PorterChip({ porterId }) {
 }
 
 function ChefCard({ s, onOpen }) {
+  // Tighter, scroll-friendly card — sized so 14+ rows fit comfortably on
+  // an iPhone viewport without overflowing the StatusPill or wrapping the
+  // flight + time onto a second line. We force `min-width: 0` on the
+  // flex children + `flex-shrink: 0` on the pill so neither side ever
+  // pushes the other off-screen.
   return (
-    // No stagger animation — at 100+ rows the per-card animation-delay was
-    // causing iOS Safari subpixel rendering artifacts on the flight numbers.
-    // List feels more "professional" without the entry choreography anyway.
     <div onClick={onOpen} className="tappable" style={{
       position: 'relative', background: '#fff',
-      borderRadius: 16, padding: '14px 14px 14px 18px',
+      borderRadius: 14, padding: '11px 12px 11px 16px',
       border: '1px solid #ececf1',
       boxShadow: '0 1px 2px rgba(15,15,40,.04)',
       cursor: 'pointer', overflow: 'hidden',
@@ -61,35 +63,59 @@ function ChefCard({ s, onOpen }) {
         background: s.assignedPorterId ? 'var(--magenta)' : 'var(--red)',
       }}/>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-          <span className="display" style={{ fontSize: 23, fontWeight: 700, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>{s.flight}</span>
-          <span style={{ fontSize: 14, fontWeight: 500, color: '#9b9bab' }}>·</span>
-          <span className="display" style={{ fontSize: 23, fontWeight: 700, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>{s.time}</span>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+      }}>
+        <div style={{
+          display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0, flex: 1,
+        }}>
+          <span style={{
+            fontSize: 17, fontWeight: 800, color: 'var(--ink)',
+            fontVariantNumeric: 'tabular-nums', letterSpacing: '-.01em',
+            whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden',
+            maxWidth: '50%',
+          }}>{s.flight}</span>
+          <span style={{ fontSize: 12, color: '#c5c5d0' }}>·</span>
+          <span style={{
+            fontSize: 17, fontWeight: 700, color: 'var(--ink)',
+            fontVariantNumeric: 'tabular-nums', letterSpacing: '-.01em',
+            whiteSpace: 'nowrap', flexShrink: 0,
+          }}>{s.time}</span>
         </div>
-        <StatusPill status={s.status}/>
+        <div style={{ flexShrink: 0 }}>
+          <StatusPill status={s.status}/>
+        </div>
       </div>
 
-      <div style={{ marginTop: 4, fontSize: 15, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-.005em' }}>
+      <div style={{
+        marginTop: 4, fontSize: 13, fontWeight: 500, color: 'var(--muted)',
+        letterSpacing: '-.005em',
+        whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden',
+      }}>
         {s.client}
       </div>
 
-      <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-        <PorterChip porterId={s.assignedPorterId}/>
+      <div style={{
+        marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        gap: 8, minWidth: 0,
+      }}>
+        <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
+          <PorterChip porterId={s.assignedPorterId}/>
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 4,
-            background: '#f6f6fa', color: 'var(--ink)', fontSize: 12, fontWeight: 600,
-            padding: '4px 8px', borderRadius: 8,
+            background: '#f6f6fa', color: 'var(--ink)', fontSize: 11, fontWeight: 600,
+            padding: '3px 7px', borderRadius: 7,
           }}>
-            <Icon.Bag size={12}/> {s.bags}
+            <Icon.Bag size={11}/> {s.bags}
           </span>
           <span style={{
             display: 'inline-flex', alignItems: 'center',
-            background: 'var(--navy)', color: '#fff', fontSize: 12, fontWeight: 700,
-            padding: '4px 8px', borderRadius: 8, fontVariantNumeric: 'tabular-nums',
+            background: 'var(--navy)', color: '#fff', fontSize: 11, fontWeight: 700,
+            padding: '3px 7px', borderRadius: 7, fontVariantNumeric: 'tabular-nums',
           }}>
-            CHF {s.price}
+            {s.price} CHF
           </span>
         </div>
       </div>
