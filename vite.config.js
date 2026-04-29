@@ -6,18 +6,18 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      // selfDestroying: the next time a previously-installed PWA loads, the
+      // generated Service Worker actively UNREGISTERS itself + DELETES every
+      // cache it created, then never re-installs. This is the only reliable
+      // way to clear a stuck SW from Marc's iPhone — after this deploy,
+      // every device that still has the old buggy SW will get a one-time
+      // cleanup on next visit and then run as a plain SPA.
+      //
+      // We can re-enable proper SW caching after the demo, once we have
+      // a versioned-asset story that guarantees clean upgrades.
+      selfDestroying: true,
       registerType: 'autoUpdate',
       includeAssets: ['logo-cgs.png', 'apple-touch-icon.png'],
-      // Activate new Service Worker immediately + claim every open client +
-      // wipe leftover caches from previous builds. Without this, returning
-      // users on an already-installed PWA can keep running an old bundle
-      // long after a fix has shipped — e.g. Marc's phone running the buggy
-      // logout HTTP-abort code path days after the fix was deployed.
-      workbox: {
-        skipWaiting: true,
-        clientsClaim: true,
-        cleanupOutdatedCaches: true,
-      },
       manifest: {
         name: 'CGS Porter',
         short_name: 'CGS Porter',

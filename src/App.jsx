@@ -198,8 +198,11 @@ export default function App() {
   }, [realUsers]);
 
   // Restore an existing Supabase session on mount so users stay logged-in across
-  // PWA reloads. If getSession resolves to null (or hangs past 5 s), drop the
-  // user to the login screen — never strand on the boot screen.
+  // PWA reloads. The session in localStorage is the source of truth — if it's
+  // there, we trust it and put the user back on home immediately. Profile
+  // enrichment happens in the background; if it fails (RLS hiccup, transient
+  // network), we keep the user logged in with whatever we have rather than
+  // booting them to the login screen, which felt aggressive in production.
   React.useEffect(() => {
     if (!isSupabaseConfigured()) return;            // local-dev only path
     let cancelled = false;
@@ -212,19 +215,31 @@ export default function App() {
         );
         if (cancelled) return;
         if (!session) { setScreen('login'); return; }
-        const { data: profile } = await withTimeout(
-          sb.from('users').select('*').eq('id', session.user.id).single(),
-          5000, 'profile',
-        );
-        if (cancelled) return;
-        if (!profile) {
-          // Orphan auth user — sign out so the next attempt isn't poisoned.
-          try { await sb.auth.signOut({ scope: 'local' }); } catch {}
-          setScreen('login');
-          return;
-        }
-        setUser(profileToUser(profile));
+
+        // Fall-back user from session metadata so the home renders even if
+        // the profile fetch is slow or fails. We replace this with the full
+        // profile row as soon as it arrives.
+        setUser({
+          id:        session.user.id,
+          email:     session.user.email,
+          firstName: session.user.user_metadata?.first_name || session.user.email?.split('@')[0] || '',
+          lastName:  session.user.user_metadata?.last_name  || '',
+          initials:  (session.user.user_metadata?.first_name?.[0] || '?').toUpperCase()
+                   + (session.user.user_metadata?.last_name?.[0] || '').toUpperCase(),
+          role:      session.user.user_metadata?.role || 'porter',
+        });
         setScreen('home');
+
+        // Background profile enrichment — non-blocking.
+        try {
+          const { data: profile } = await withTimeout(
+            sb.from('users').select('*').eq('id', session.user.id).single(),
+            6000, 'profile',
+          );
+          if (!cancelled && profile) setUser(profileToUser(profile));
+        } catch (err) {
+          console.warn('[boot] profile enrich failed (keeping session):', err?.message || err);
+        }
       } catch (err) {
         console.warn('[boot] session restore failed:', err?.message || err);
         if (!cancelled) setScreen('login');

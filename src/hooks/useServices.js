@@ -110,8 +110,24 @@ export function useServices(initial = []) {
       authSub = data?.subscription;
     })();
 
+    // Polling fallback — every 10 s re-fetch the services list. Realtime
+    // is the primary delivery mechanism but it can fail silently (closed
+    // websocket, ISP firewall, mobile data switch). Polling guarantees
+    // every porter sees an assignment within ~10 s in the worst case.
+    const pollId = setInterval(async () => {
+      const sb = await getSupabase();
+      if (!sb || !mounted) return;
+      const { data } = await sb
+        .from('services')
+        .select('*')
+        .order('scheduled_at', { ascending: true });
+      if (!mounted || !data) return;
+      setServices(data.map(fromRow));
+    }, 10000);
+
     return () => {
       mounted = false;
+      clearInterval(pollId);
       if (channel) channel.unsubscribe();
       if (authSub) authSub.unsubscribe();
     };
