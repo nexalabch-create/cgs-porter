@@ -318,6 +318,12 @@ export default function App() {
       } catch (e) {
         console.warn('[handleLogout] signOut failed (state already reset):', e);
       }
+      // Hard reload to nuke ALL client-side state (Supabase GoTrueClient,
+      // realtime subscriptions, React tree). Without this, signing in as a
+      // different user on the same device hangs because the previous session's
+      // GoTrueClient retains stale internal state. The reload takes ~300 ms on
+      // a phone — invisible to the user, who already expects a transition.
+      try { window.location.reload(); } catch {}
     }
   };
 

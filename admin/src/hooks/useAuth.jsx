@@ -162,6 +162,10 @@ export function AuthProvider({ children }) {
       console.warn('[useAuth.signOut] failed:', e?.message || e);
       setUser(null); setProfile(null); setStatus('guest');
     }
+    // Hard reload — same reasoning as mobile: nukes the GoTrueClient + all
+    // realtime subs so the next user (or same user re-logging in) gets a
+    // fresh state. Without this, sign-in immediately after sign-out can hang.
+    try { window.location.assign('/login'); } catch {}
   };
 
   const sendResetEmail = async (email) => {
