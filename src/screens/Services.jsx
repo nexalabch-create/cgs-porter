@@ -31,6 +31,7 @@ function ServiceCard({ s, onOpen, index = 0 }) {
       border: '1px solid #ececf1',
       boxShadow: '0 1px 2px rgba(15,15,40,.04)',
       cursor: 'pointer', overflow: 'hidden',
+      flexShrink: 0,  // prevent flex-column parent from squashing cards
     }}>
       <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: 'var(--magenta)' }}/>
 

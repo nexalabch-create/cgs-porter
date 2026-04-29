@@ -57,6 +57,12 @@ function ChefCard({ s, onOpen }) {
       border: '1px solid #ececf1',
       boxShadow: '0 1px 2px rgba(15,15,40,.04)',
       cursor: 'pointer', overflow: 'hidden',
+      // CRITICAL: each card is a flex-column child of `.scroll` below.
+      // Without flex-shrink:0, the browser shrinks every card down to its
+      // line-height when the list overflows the viewport — collapsing the
+      // 3-row layout (flight/time, client, porter+price) into a single
+      // ~24 px sliver and clipping the StatusPill on the right.
+      flexShrink: 0,
     }}>
       <div style={{
         position: 'absolute', left: 0, top: 0, bottom: 0, width: 4,
