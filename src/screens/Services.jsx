@@ -21,11 +21,11 @@ export function StatusPill({ status }) {
   );
 }
 
-function ServiceCard({ s, onOpen, index = 0, mine = false }) {
+function ServiceCard({ s, onOpen, index = 0, mine = false, assignedName = null, assignedInitials = null }) {
   // Three visual states for the worker:
   //   · mine          → magenta left bar + "VOUS" magenta pill
   //   · unassigned    → red left bar + "À PRENDRE" red pill (anyone can take it)
-  //   · others        → muted gray bar (assigned to a teammate; informational)
+  //   · others        → muted gray bar + chip with the teammate's initials/name
   const unassigned = !s.assignedPorterId;
   const barColor = mine ? 'var(--magenta)' : (unassigned ? 'var(--red)' : '#c5c5d0');
 
@@ -88,6 +88,30 @@ function ServiceCard({ s, onOpen, index = 0, mine = false }) {
       }}>
         {s.client}
       </div>
+
+      {/* "Pris par <Prénom>" chip — only on teammates' cards. Lets the
+          worker see at a glance who's covering each unassigned-but-claimed
+          slot without opening the detail screen. */}
+      {!mine && !unassigned && assignedName && (
+        <div style={{
+          marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 6,
+          background: '#f6f6fa', border: '1px solid #ececf1',
+          padding: '3px 8px 3px 3px', borderRadius: 999,
+          fontSize: 11, fontWeight: 600, color: 'var(--ink)',
+          maxWidth: '100%',
+        }}>
+          <span style={{
+            width: 18, height: 18, borderRadius: 999,
+            background: 'linear-gradient(135deg, #fce0ee, #fcb6da)',
+            color: 'var(--magenta)', fontSize: 9, fontWeight: 800,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+          }}>{assignedInitials || '·'}</span>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            Pris par {assignedName}
+          </span>
+        </div>
+      )}
 
       <div style={{
         marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -158,7 +182,22 @@ function SectionHeader({ children }) {
 export default function ServicesScreen({
   services, onOpen, firstName = 'Marc', empty = false,
   currentUserId, unreadCount = 0, onOpenNotifications,
+  findPorter,
 }) {
+  // Tiny helper that resolves an assigned porter id → { name, initials }
+  // for the "Pris par X" chip on teammates' cards. Falls back to "—" / null
+  // if the resolver isn't wired (demo mode, RLS hiccup, etc.).
+  const resolveAssignee = React.useCallback((id) => {
+    if (!id || !findPorter) return null;
+    const p = findPorter(id);
+    if (!p) return null;
+    const first = p.firstName || p.first_name || '';
+    const last  = p.lastName  || p.last_name  || '';
+    const initials = p.initials || ((first[0] || '') + (last[0] || '')).toUpperCase();
+    const name = first ? `${first}${last ? ' ' + last.charAt(0) + '.' : ''}` : (p.email || '');
+    return { name, initials };
+  }, [findPorter]);
+
   // Real "now" — was hardcoded to 2026-04-25 during dev. Tracks the actual day.
   const today = new Date();
   const dateLabel = today.toLocaleDateString('fr-CH', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -266,9 +305,17 @@ export default function ServicesScreen({
             {partitioned.others.length > 0 && (
               <>
                 <SectionHeader>Reste de l’équipe ({partitioned.others.length})</SectionHeader>
-                {partitioned.others.map((s, i) => (
-                  <ServiceCard key={s.id} s={s} index={i} onOpen={() => onOpen(s.id)}/>
-                ))}
+                {partitioned.others.map((s, i) => {
+                  const a = resolveAssignee(s.assignedPorterId);
+                  return (
+                    <ServiceCard
+                      key={s.id} s={s} index={i}
+                      assignedName={a?.name}
+                      assignedInitials={a?.initials}
+                      onOpen={() => onOpen(s.id)}
+                    />
+                  );
+                })}
               </>
             )}
           </>

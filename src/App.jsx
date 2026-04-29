@@ -503,6 +503,7 @@ export default function App() {
             services={services}
             firstName={user.firstName}
             currentUserId={user.id}
+            findPorter={findPorter}
             empty={services.length === 0}
             unreadCount={unreadCount}
             onOpenNotifications={() => setNotifsOpen(true)}
@@ -514,6 +515,7 @@ export default function App() {
           <DetailScreen
             service={active}
             user={user}
+            findPorter={findPorter}
             onBack={() => setScreen('services')}
             onUpdate={updateService}
             onAssign={openAssignSheet}

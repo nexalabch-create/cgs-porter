@@ -1,7 +1,7 @@
 import React from 'react';
 import { Icon } from '../components/Icons.jsx';
 import { StatusPill } from './Services.jsx';
-import { findPorter, porterDisplayName } from '../data/porters.js';
+import { findPorter as findDemoPorter, porterDisplayName } from '../data/porters.js';
 import { totalChfFor, DEFAULT_TARIFF } from '../lib/pricing.js';
 
 function fmtTimer(sec) {
@@ -57,12 +57,16 @@ function Stepper({ value, onChange, min = 0, max = 99 }) {
   );
 }
 
-export default function DetailScreen({ service, user, onBack, onUpdate, onAssign, onSelfAssign }) {
+export default function DetailScreen({ service, user, onBack, onUpdate, onAssign, onSelfAssign, findPorter }) {
   const isChef = user?.role === 'chef';
   const isAssignedToMe = service.assignedPorterId === user?.id;
-  const assignedPorter = findPorter(service.assignedPorterId);
-  // Chef sees the porter timer/CTA flow only on services they took themselves.
-  const showPorterControls = !isChef || isAssignedToMe;
+  const isUnassigned = !service.assignedPorterId;
+  const resolvePorter = findPorter || findDemoPorter;
+  const assignedPorter = resolvePorter(service.assignedPorterId);
+  // Start/Stop timer + bag/remarques editing — only for the person actually
+  // doing the service. A porter looking at a teammate's card should NOT see
+  // the green "DÉMARRER" button (it would let them mutate someone else's row).
+  const showPorterControls = isAssignedToMe;
 
   const [bags, setBags] = React.useState(service.bags);
   const [remarques, setRemarques] = React.useState(service.remarques || '');
@@ -267,6 +271,64 @@ export default function DetailScreen({ service, user, onBack, onUpdate, onAssign
           </div>
         )}
 
+
+        {/* Porter-side claim card — when an unassigned service appears in
+            "À prendre", any worker can grab it from here. Once they do,
+            assignPorter() runs server-side and realtime broadcasts the
+            update; the card disappears from "À prendre" for everyone else
+            and re-appears in "Mes services" for them. The chef admin
+            sees the new assignment within ~1 s via realtime, no refresh. */}
+        {!isChef && isUnassigned && (
+          <div style={{
+            marginTop: 12, background: '#fff', borderRadius: 18,
+            border: '1px solid #ececf1', padding: '16px 18px',
+            boxShadow: '0 1px 2px rgba(15,15,40,.04)',
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', letterSpacing: '.14em', textTransform: 'uppercase' }}>
+              Service libre
+            </div>
+            <div style={{ marginTop: 6, fontSize: 14, fontWeight: 500, color: 'var(--ink)', lineHeight: 1.4 }}>
+              Personne ne s'en occupe encore. Prenez-le pour qu'il soit retiré de la liste publique et apparaisse dans <strong>Mes services</strong>.
+            </div>
+            <button
+              onClick={() => onSelfAssign && onSelfAssign(service.id)}
+              className="tappable"
+              style={{
+                marginTop: 14, width: '100%', height: 50, border: 0, borderRadius: 14,
+                background: 'linear-gradient(135deg, #f23ba0 0%, #c2127a 100%)',
+                color: '#fff', fontFamily: 'inherit', fontWeight: 700, fontSize: 14.5,
+                letterSpacing: '-.005em', cursor: 'pointer',
+                boxShadow: '0 10px 24px -10px rgba(233,30,140,.6), inset 0 1px 0 rgba(255,255,255,.25)',
+              }}>
+              Je prends ce service
+            </button>
+          </div>
+        )}
+
+        {/* Porter looking at a teammate's service — read-only info banner.
+            No start/stop timer; just so they know who's covering it. */}
+        {!isChef && !isUnassigned && !isAssignedToMe && assignedPorter && (
+          <div style={{
+            marginTop: 12, background: '#fafafd', borderRadius: 18,
+            border: '1px solid #ececf1', padding: '14px 16px',
+            display: 'flex', alignItems: 'center', gap: 12,
+          }}>
+            <div style={{
+              width: 38, height: 38, borderRadius: 999,
+              background: 'linear-gradient(135deg, #fce0ee, #fcb6da)',
+              color: 'var(--magenta)', fontSize: 12, fontWeight: 800,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>{assignedPorter.initials || (assignedPorter.firstName?.[0] || '') + (assignedPorter.lastName?.[0] || '')}</div>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', letterSpacing: '.14em', textTransform: 'uppercase' }}>
+                Pris par
+              </div>
+              <div style={{ marginTop: 2, fontSize: 14, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {porterDisplayName(assignedPorter)}
+              </div>
+            </div>
+          </div>
+        )}
 
         {showPorterControls && (
         <div style={{
