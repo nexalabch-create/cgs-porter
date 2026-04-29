@@ -230,7 +230,7 @@ export default function ChefHomeScreen({
                 boxShadow: '0 10px 24px -10px rgba(233,30,140,.65), inset 0 1px 0 rgba(255,255,255,.25)',
                 transition: 'transform .15s ease, box-shadow .2s ease',
               }}>
-                Assigner un porteur <Icon.ChevronRight size={16}/>
+                Assigner un travailleur <Icon.ChevronRight size={16}/>
               </button>
             </>
           ) : stats.unassigned === 0 ? (

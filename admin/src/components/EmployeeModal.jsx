@@ -93,7 +93,7 @@ export default function EmployeeModal({ open, employee, onClose, onSaved }) {
             <span className="label">Rôle</span>
             <div className="mt-1.5 grid grid-cols-2 gap-2">
               {[
-                { v: 'porter', label: 'Porteur',         icon: User },
+                { v: 'porter', label: 'Travailleur',         icon: User },
                 { v: 'chef',   label: "Chef d'équipe",   icon: UserCheck },
               ].map(r => {
                 const a = form.role === r.v;
@@ -112,7 +112,7 @@ export default function EmployeeModal({ open, employee, onClose, onSaved }) {
               })}
             </div>
             <p className="mt-2 text-[11px] text-muted leading-relaxed">
-              Un chef d'équipe accède au panel admin et peut assigner les services. Un porteur ne voit que ses propres services dans l'app mobile.
+              Un chef d'équipe accède au panel admin et peut assigner les services. Un travailleur ne voit que ses propres services dans l'app mobile.
             </p>
           </div>
 

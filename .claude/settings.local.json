@@ -20,7 +20,20 @@
       "Bash(python3 -c ' *)",
       "Bash(node scripts/promote-chefs.mjs)",
       "Bash(node scripts/demo-reset.mjs)",
-      "Bash(node scripts/demo-reset.mjs --full)"
+      "Bash(node scripts/demo-reset.mjs --full)",
+      "Bash(kill -9 34412 35035)",
+      "Bash(lsof -nP -iTCP:5173,5174 -sTCP:LISTEN)",
+      "Bash(node scripts/populate-history.mjs)",
+      "Bash(python3 scripts/capture-screenshots.py)",
+      "Bash(python3 scripts/capture-recovery.py)",
+      "Bash(npx skills *)",
+      "Read(//Users/matetorgvaidze/.agents/skills/pptx/**)",
+      "Read(//Users/matetorgvaidze/.claude/skills/**)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(git checkout *)",
+      "Bash(rm -rf .claude/skills/cgs-qa-loop/state/run-test-synthetic .claude/skills/cgs-qa-loop/state/known-issues.json)"
     ]
   }
 }

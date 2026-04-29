@@ -172,12 +172,12 @@ export default function Rapports() {
           </div>
         </Section>
 
-        <Section title="Par porteur">
+        <Section title="Par travailleur">
           <div className="card overflow-hidden">
             <table className="w-full">
               <thead className="bg-slate-50 table-head">
                 <tr>
-                  <th>Porteur</th>
+                  <th>Travailleur</th>
                   <th className="text-right">Services</th>
                   <th className="text-right">Heures</th>
                   <th className="text-right">CA total</th>

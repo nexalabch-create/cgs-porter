@@ -63,7 +63,7 @@ export default function Employes() {
             {[
               { id: 'all',    label: `Tous (${counts.all})` },
               { id: 'chef',   label: `Chefs (${counts.chef})` },
-              { id: 'porter', label: `Porteurs (${counts.porter})` },
+              { id: 'porter', label: `Travailleurs (${counts.porter})` },
             ].map(r => (
               <button key={r.id} onClick={() => setRoleFilter(r.id)}
                 className={`px-3 py-1.5 rounded-md text-sm font-semibold tracking-tight transition
@@ -104,7 +104,7 @@ export default function Employes() {
                     <div className="text-xs text-muted truncate" title={p.email}>{p.email}</div>
                     <div className="mt-1.5">
                       <span className={`badge ${isChef ? 'bg-navy text-white' : 'bg-slate-100 text-muted'}`}>
-                        {isChef ? "Chef d'équipe" : 'Porteur'}
+                        {isChef ? "Chef d'équipe" : 'Travailleur'}
                       </span>
                     </div>
                   </div>

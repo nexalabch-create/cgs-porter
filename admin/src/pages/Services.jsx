@@ -81,7 +81,7 @@ export default function Services() {
         Client: s.client_name,
         Email: s.client_email ?? '',
         Telephone: s.client_phone,
-        Porteur: p ? `${p.first_name} ${p.last_name}` : '',
+        Travailleur: p ? `${p.first_name} ${p.last_name}` : '',
         Agence: s.agency,
         Source: SOURCE_LABEL[s.source] ?? s.source,
         Bagages: s.bags,
@@ -120,7 +120,7 @@ export default function Services() {
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted"/>
               <input
                 value={q} onChange={(e) => setQ(e.target.value)}
-                placeholder="Recherche client, vol, porteur, agence…"
+                placeholder="Recherche client, vol, travailleur, agence…"
                 className="input pl-9"
               />
             </div>
@@ -131,7 +131,7 @@ export default function Services() {
               {SOURCE_OPTIONS.map(v => <option key={v} value={v}>{v ? SOURCE_LABEL[v] : 'Toutes sources'}</option>)}
             </select>
             <select className="input w-auto" value={porterFilter} onChange={(e) => setPorterFilter(e.target.value)}>
-              <option value="">Tous porteurs</option>
+              <option value="">Tous travailleurs</option>
               <option value="__none__">Non assigné</option>
               {porters.map(p => <option key={p.id} value={p.id}>{p.first_name} {p.last_name}</option>)}
             </select>
@@ -147,7 +147,7 @@ export default function Services() {
                   <th>Heure</th>
                   <SortableTh sortKey="flight" current={sortKey} dir={sortDir} onClick={onSort}>Vol</SortableTh>
                   <SortableTh sortKey="client_name" current={sortKey} dir={sortDir} onClick={onSort}>Client</SortableTh>
-                  <th>Porteur</th>
+                  <th>Travailleur</th>
                   <SortableTh sortKey="agency" current={sortKey} dir={sortDir} onClick={onSort}>Agence</SortableTh>
                   <th className="text-right">Bag.</th>
                   <SortableTh sortKey="total" current={sortKey} dir={sortDir} onClick={onSort} className="text-right">CHF</SortableTh>

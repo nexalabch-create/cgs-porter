@@ -57,7 +57,7 @@ export default function EmployeDetail() {
     <>
       <PageHeader
         title={`${employee.first_name} ${employee.last_name}`}
-        subtitle={`${employee.role === 'chef' ? "Chef d'équipe" : 'Porteur'} · ${employee.email}`}>
+        subtitle={`${employee.role === 'chef' ? "Chef d'équipe" : 'Travailleur'} · ${employee.email}`}>
         <Link to="/employes" className="btn-secondary"><ArrowLeft size={16}/> Retour</Link>
         <button onClick={() => setEditOpen(true)} className="btn-primary">
           <Pencil size={16}/> Modifier

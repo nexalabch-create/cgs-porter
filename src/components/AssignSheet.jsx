@@ -63,7 +63,7 @@ export default function AssignSheet({ open, service, onClose, onAssign, users })
         <div style={{ width: 44, height: 5, background: '#e0e0ea', borderRadius: 999, margin: '10px auto 12px' }}/>
 
         <div style={{ padding: '0 20px 12px' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--magenta)', letterSpacing: '.14em', textTransform: 'uppercase' }}>Assigner un porteur</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--magenta)', letterSpacing: '.14em', textTransform: 'uppercase' }}>Assigner un travailleur</div>
           {service && (
             <div style={{ marginTop: 4, fontSize: 18, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-.02em' }}>
               {service.flight} · {service.time} <span style={{ fontWeight: 500, color: 'var(--muted)' }}>· {service.client}</span>
@@ -72,7 +72,7 @@ export default function AssignSheet({ open, service, onClose, onAssign, users })
 
           <input
             type="search" value={query} onChange={(e) => setQuery(e.target.value)}
-            placeholder="Rechercher un porteur ou chef…"
+            placeholder="Rechercher un travailleur ou chef…"
             style={{
               marginTop: 12, width: '100%', height: 42, padding: '0 14px',
               fontFamily: 'inherit', fontSize: 14, color: 'var(--ink)',
@@ -109,7 +109,7 @@ export default function AssignSheet({ open, service, onClose, onAssign, users })
                     margin: '14px 4px 8px', fontSize: 10, fontWeight: 700,
                     color: 'var(--muted)', letterSpacing: '.1em', textTransform: 'uppercase',
                   }}>
-                    Porteurs ({filtered.length - chefCount})
+                    Travailleurs ({filtered.length - chefCount})
                   </div>
                 )}
                 {i === 0 && chefCount > 0 && !q && (
@@ -154,7 +154,7 @@ export default function AssignSheet({ open, service, onClose, onAssign, users })
                       )}
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--muted)' }}>
-                      {isChef ? "Chef d'équipe · GVA" : 'Porteur · GVA'}
+                      {isChef ? "Chef d'équipe · GVA" : 'Travailleur · GVA'}
                     </div>
                   </div>
                   <svg width="8" height="14" viewBox="0 0 8 14" style={{ flexShrink: 0, color: '#cfcfdc' }}>

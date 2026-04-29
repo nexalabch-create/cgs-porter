@@ -21,56 +21,100 @@ export function StatusPill({ status }) {
   );
 }
 
-function ServiceCard({ s, onOpen, index = 0 }) {
+function ServiceCard({ s, onOpen, index = 0, mine = false }) {
+  // Three visual states for the worker:
+  //   · mine          → magenta left bar + "VOUS" magenta pill
+  //   · unassigned    → red left bar + "À PRENDRE" red pill (anyone can take it)
+  //   · others        → muted gray bar (assigned to a teammate; informational)
+  const unassigned = !s.assignedPorterId;
+  const barColor = mine ? 'var(--magenta)' : (unassigned ? 'var(--red)' : '#c5c5d0');
+
   return (
     <div onClick={onOpen} className="tappable stagger-in" style={{
-      // Skill · frontend-design — staggered reveal animates each card in sequence.
       ['--stagger']: index,
       position: 'relative', background: '#fff',
-      borderRadius: 16, padding: '14px 14px 14px 18px',
-      border: '1px solid #ececf1',
+      borderRadius: 14, padding: '11px 12px 11px 16px',
+      border: '1px solid ' + (mine ? '#fce0ee' : '#ececf1'),
       boxShadow: '0 1px 2px rgba(15,15,40,.04)',
       cursor: 'pointer', overflow: 'hidden',
       flexShrink: 0,  // prevent flex-column parent from squashing cards
     }}>
-      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: 'var(--magenta)' }}/>
+      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: barColor }}/>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-          <span className="display" style={{ fontSize: 23, fontWeight: 700, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
-            {s.flight}
-          </span>
-          <span style={{ fontSize: 14, fontWeight: 500, color: '#9b9bab' }}>·</span>
-          <span className="display" style={{ fontSize: 23, fontWeight: 700, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
-            {s.time}
-          </span>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0, flex: 1 }}>
+          <span style={{
+            fontSize: 17, fontWeight: 800, color: 'var(--ink)',
+            fontVariantNumeric: 'tabular-nums', letterSpacing: '-.01em',
+            whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden',
+            maxWidth: '50%',
+          }}>{s.flight}</span>
+          <span style={{ fontSize: 12, color: '#c5c5d0' }}>·</span>
+          <span style={{
+            fontSize: 17, fontWeight: 700, color: 'var(--ink)',
+            fontVariantNumeric: 'tabular-nums', letterSpacing: '-.01em',
+            whiteSpace: 'nowrap', flexShrink: 0,
+          }}>{s.time}</span>
+          {mine && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center',
+              background: 'var(--magenta)', color: '#fff',
+              fontSize: 9.5, fontWeight: 800, letterSpacing: '.10em',
+              padding: '3px 7px', borderRadius: 999, flexShrink: 0,
+            }}>VOUS</span>
+          )}
         </div>
-        <StatusPill status={s.status}/>
+        <div style={{ flexShrink: 0 }}>
+          {unassigned ? (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              background: '#fee2e2', color: '#b91c1c',
+              fontSize: 10.5, fontWeight: 700, letterSpacing: '.08em',
+              padding: '5px 9px 5px 8px', borderRadius: 999,
+            }}>
+              <span style={{ width: 6, height: 6, borderRadius: 999, background: '#dc2626' }}/>
+              À PRENDRE
+            </span>
+          ) : (
+            <StatusPill status={s.status}/>
+          )}
+        </div>
       </div>
 
-      <div style={{ marginTop: 4, fontSize: 15, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-.005em' }}>
+      <div style={{
+        marginTop: 4, fontSize: 13, fontWeight: 500, color: 'var(--muted)',
+        letterSpacing: '-.005em',
+        whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden',
+      }}>
         {s.client}
       </div>
 
-      <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--muted)', fontSize: 13, minWidth: 0 }}>
-          <Icon.Pin size={14} color="var(--magenta)"/>
+      <div style={{
+        marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        gap: 8, minWidth: 0,
+      }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          color: 'var(--muted)', fontSize: 12, minWidth: 0,
+        }}>
+          <Icon.Pin size={12} color={mine ? 'var(--magenta)' : '#9b9bab'}/>
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.meeting}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 4,
-            background: '#f6f6fa', color: 'var(--ink)', fontSize: 12, fontWeight: 600,
-            padding: '4px 8px', borderRadius: 8,
+            background: '#f6f6fa', color: 'var(--ink)', fontSize: 11, fontWeight: 600,
+            padding: '3px 7px', borderRadius: 7,
           }}>
-            <Icon.Bag size={12}/> {s.bags}
+            <Icon.Bag size={11}/> {s.bags}
           </span>
           <span style={{
             display: 'inline-flex', alignItems: 'center',
-            background: 'var(--navy)', color: '#fff', fontSize: 12, fontWeight: 700,
-            padding: '4px 8px', borderRadius: 8, fontVariantNumeric: 'tabular-nums',
+            background: mine ? 'var(--magenta)' : 'var(--navy)',
+            color: '#fff', fontSize: 11, fontWeight: 700,
+            padding: '3px 7px', borderRadius: 7, fontVariantNumeric: 'tabular-nums',
           }}>
-            CHF {s.price}
+            {s.price} CHF
           </span>
         </div>
       </div>
@@ -98,15 +142,44 @@ function EmptyState() {
   );
 }
 
+// SectionHeader — small uppercase label between two groups of cards.
+function SectionHeader({ children }) {
+  return (
+    <div style={{
+      fontSize: 11, fontWeight: 800, letterSpacing: '.12em',
+      color: 'var(--muted)', textTransform: 'uppercase',
+      padding: '4px 4px 0',
+    }}>
+      {children}
+    </div>
+  );
+}
+
 export default function ServicesScreen({
   services, onOpen, firstName = 'Marc', empty = false,
-  unreadCount = 0, onOpenNotifications,
+  currentUserId, unreadCount = 0, onOpenNotifications,
 }) {
   // Real "now" — was hardcoded to 2026-04-25 during dev. Tracks the actual day.
   const today = new Date();
   const dateLabel = today.toLocaleDateString('fr-CH', { weekday: 'long', day: 'numeric', month: 'long' });
   const count = services.length;
   const counts = services.reduce((a, s) => (a[s.status] = (a[s.status] || 0) + 1, a), {});
+
+  // When the worker has a currentUserId, partition the list into 3 groups
+  // so they can scan their own first, then unassigned ones they could grab,
+  // then the rest of the team's day. Keeps the "VOUS" cards above the fold.
+  const partitioned = React.useMemo(() => {
+    if (!currentUserId) return null;
+    const mine = [];
+    const open = [];
+    const others = [];
+    for (const s of services) {
+      if (s.assignedPorterId === currentUserId) mine.push(s);
+      else if (!s.assignedPorterId) open.push(s);
+      else others.push(s);
+    }
+    return { mine, open, others };
+  }, [services, currentUserId]);
 
   return (
     <div className="fade-enter" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#f7f7fb', minHeight: 0 }}>
@@ -170,13 +243,39 @@ export default function ServicesScreen({
       </div>
 
       <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '14px 16px 28px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {empty ? <EmptyState/> : services.map((s, i) => (
-          <ServiceCard key={s.id} s={s} index={i} onOpen={() => onOpen(s.id)}/>
-        ))}
-        {!empty && (
-          <div style={{ textAlign: 'center', fontSize: 11, color: '#aaaab8', marginTop: 6, letterSpacing: '.04em' }}>
-            Fin du shift · 18:00
-          </div>
+        {empty ? (
+          <EmptyState/>
+        ) : partitioned ? (
+          <>
+            {partitioned.mine.length > 0 && (
+              <>
+                <SectionHeader>Mes services ({partitioned.mine.length})</SectionHeader>
+                {partitioned.mine.map((s, i) => (
+                  <ServiceCard key={s.id} s={s} index={i} mine onOpen={() => onOpen(s.id)}/>
+                ))}
+              </>
+            )}
+            {partitioned.open.length > 0 && (
+              <>
+                <SectionHeader>À prendre ({partitioned.open.length})</SectionHeader>
+                {partitioned.open.map((s, i) => (
+                  <ServiceCard key={s.id} s={s} index={i} onOpen={() => onOpen(s.id)}/>
+                ))}
+              </>
+            )}
+            {partitioned.others.length > 0 && (
+              <>
+                <SectionHeader>Reste de l’équipe ({partitioned.others.length})</SectionHeader>
+                {partitioned.others.map((s, i) => (
+                  <ServiceCard key={s.id} s={s} index={i} onOpen={() => onOpen(s.id)}/>
+                ))}
+              </>
+            )}
+          </>
+        ) : (
+          services.map((s, i) => (
+            <ServiceCard key={s.id} s={s} index={i} onOpen={() => onOpen(s.id)}/>
+          ))
         )}
       </div>
     </div>

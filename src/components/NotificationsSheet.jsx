@@ -56,7 +56,7 @@ function bodyFor(n, isChef) {
   if (n.type === 'service_started') {
     return (
       <>
-        Le porteur a démarré <strong>{p.flight}</strong> · {p.time}
+        Le travailleur a démarré <strong>{p.flight}</strong> · {p.time}
       </>
     );
   }

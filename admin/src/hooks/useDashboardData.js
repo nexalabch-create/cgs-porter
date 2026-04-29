@@ -92,7 +92,7 @@ export function useDashboardData() {
       .slice(0, 5)
       .map(s => ({ ...s, porter: porterById.get(s.assigned_porter_id) }));
 
-    // Top 5 porteurs this month.
+    // Top 5 travailleurs this month.
     const stats = new Map();
     for (const s of month) {
       if (s.status !== 'done' || !s.assigned_porter_id) continue;

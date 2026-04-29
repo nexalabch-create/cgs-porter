@@ -354,7 +354,11 @@ export default function App() {
     }
   };
 
-  // Visible services per role.
+  // myServices = the worker's OWN services. Used for the home "next
+  // service" hero card, the home stats counter, and the cash total.
+  // The Services tab itself now shows ALL the day's services (assigned,
+  // unassigned, and other workers') so the team can see who's busy with
+  // what and pick up unassigned slots without going through the chef.
   const myServices = user?.role === 'porter'
     ? services.filter(s => s.assignedPorterId === user.id)
     : services;
@@ -496,9 +500,10 @@ export default function App() {
         )}
         {screen === 'services' && user && user.role === 'porter' && (
           <ServicesScreen
-            services={myServices}
+            services={services}
             firstName={user.firstName}
-            empty={myServices.length === 0}
+            currentUserId={user.id}
+            empty={services.length === 0}
             unreadCount={unreadCount}
             onOpenNotifications={() => setNotifsOpen(true)}
             onOpen={(id) => { setActiveId(id); setScreen('detail'); }}

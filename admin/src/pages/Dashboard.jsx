@@ -103,7 +103,7 @@ export default function Dashboard() {
             <table className="w-full">
               <thead className="bg-slate-50 table-head">
                 <tr>
-                  <th>Heure</th><th>Vol</th><th>Client</th><th>Porteur</th>
+                  <th>Heure</th><th>Vol</th><th>Client</th><th>Travailleur</th>
                 </tr>
               </thead>
               <tbody className="table-body">
@@ -124,12 +124,12 @@ export default function Dashboard() {
 
           <div className="card overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100">
-              <h3 className="font-display text-lg font-semibold tracking-tight">Top 5 porteurs ce mois</h3>
+              <h3 className="font-display text-lg font-semibold tracking-tight">Top 5 travailleurs ce mois</h3>
             </div>
             <table className="w-full">
               <thead className="bg-slate-50 table-head">
                 <tr>
-                  <th>Porteur</th><th className="text-right">Services</th>
+                  <th>Travailleur</th><th className="text-right">Services</th>
                 </tr>
               </thead>
               <tbody className="table-body">

@@ -4,7 +4,7 @@ import React from 'react';
  * Toast — auto-hides after a configurable delay. Two variants:
  *   · standard: inline confirmation ("Service assigné à …"). Magenta dot,
  *     navy background, single line, ~3.5 s.
- *   · urgent: incoming notification ("Nouveau service assigné" pour un porteur).
+ *   · urgent: incoming notification ("Nouveau service assigné" pour un travailleur).
  *     Magenta gradient background, two lines (title + subtitle), 6 s, larger
  *     emoji, harder to miss.
  *

@@ -251,7 +251,7 @@ export default function DetailScreen({ service, user, onBack, onUpdate, onAssign
                 letterSpacing: '-.005em', cursor: 'pointer',
                 boxShadow: '0 10px 24px -10px rgba(233,30,140,.6), inset 0 1px 0 rgba(255,255,255,.25)',
               }}>
-                {assignedPorter ? 'Réassigner' : 'Assigner un porteur'}
+                {assignedPorter ? 'Réassigner' : 'Assigner un travailleur'}
               </button>
               {!isAssignedToMe && (
                 <button onClick={() => onSelfAssign && onSelfAssign(service.id)} className="tappable" style={{
@@ -330,7 +330,7 @@ export default function DetailScreen({ service, user, onBack, onUpdate, onAssign
         {showPorterControls && (
         <div style={{ marginTop: 18 }}>
           {/* Unified primary-CTA style: 56px tall, 14px radius, brand gradient,
-              consistent with the chef-home "Assigner un porteur" CTA. The
+              consistent with the chef-home "Assigner un travailleur" CTA. The
               big-and-emphatic feel is preserved (porters in motion need a
               tap-target that's easy to hit) but the visual language matches
               the rest of the app. */}

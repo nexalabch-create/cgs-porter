@@ -23,7 +23,7 @@ const RECENT = [
 export default function ProfileScreen({ user, onLogout }) {
   const fullName = user ? `${user.firstName} ${user.lastName}` : 'Mate Torgvaidze';
   const initials = user?.initials || 'MT';
-  const roleLabel = user?.role === 'chef' ? "Chef d'équipe" : 'Porteur';
+  const roleLabel = user?.role === 'chef' ? "Chef d'équipe" : 'Travailleur';
 
   return (
     <div className="fade-enter" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#f7f7fb', minHeight: 0 }}>

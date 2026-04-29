@@ -192,7 +192,7 @@ export default function Importer() {
                   3 · Aperçu — {preview.length} services
                 </h2>
                 <p className="text-xs text-muted mt-0.5">
-                  Vérifie avant d'envoyer. Tous les services seront créés en statut <code className="bg-slate-100 px-1 py-0.5 rounded">à faire</code> et sans porteur assigné.
+                  Vérifie avant d'envoyer. Tous les services seront créés en statut <code className="bg-slate-100 px-1 py-0.5 rounded">à faire</code> et sans travailleur assigné.
                 </p>
               </div>
               <div className="flex gap-2">
@@ -257,8 +257,8 @@ export default function Importer() {
             <li>Le matin, télécharge le PDF/Excel envoyé par DNATA / Swissport.</li>
             <li>Ouvre-le dans Google Sheets, complète/vérifie les colonnes attendues, exporte en <strong>CSV</strong>.</li>
             <li>Glisse le CSV ici, vérifie l'aperçu, clique <strong>Importer</strong>.</li>
-            <li>Les services apparaissent immédiatement sur le tableau de bord et dans l'app mobile des porteurs.</li>
-            <li>Tu peux ensuite <strong>assigner par téléphone</strong> et marquer dans la liste — chaque porteur reçoit son service en temps réel.</li>
+            <li>Les services apparaissent immédiatement sur le tableau de bord et dans l'app mobile des travailleurs.</li>
+            <li>Tu peux ensuite <strong>assigner par téléphone</strong> et marquer dans la liste — chaque travailleur reçoit son service en temps réel.</li>
           </ol>
         </div>
       </div>

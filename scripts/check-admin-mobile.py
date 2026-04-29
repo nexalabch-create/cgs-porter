@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
-ADMIN = "https://cgs-porter-admin-8oh6d3x1o-nexalabch-creates-projects.vercel.app"
+ADMIN = "https://cgs-porter-admin-bqyiq42bl-nexalabch-creates-projects.vercel.app"
 PWD = "CgsPorter2026!"
 OUT = Path("/tmp")
 
