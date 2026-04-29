@@ -10,11 +10,11 @@ Runs against local dev servers (mobile=5173, admin=5174). Tests:
 
 Exit 0 on full pass, 1 on any failure.
 """
-import sys
+import os, sys
 from playwright.sync_api import sync_playwright, expect
 
-MOBILE = "http://localhost:5173"
-ADMIN = "http://localhost:5174"
+MOBILE = os.environ.get("MOBILE_URL", "http://localhost:5173")
+ADMIN = os.environ.get("ADMIN_URL", "http://localhost:5174")
 PASSWORD = "CgsPorter2026!"
 PORTER_EMAIL = "marc.dubois@cgs-ltd.com"
 CHEF_EMAIL = "mate.torgvaidze@cgs-ltd.com"
@@ -36,7 +36,7 @@ with sync_playwright() as p:
     browser = p.chromium.launch(headless=True)
 
     # ── Mobile ──────────────────────────────────────────────────────────
-    print("\n[MOBILE] http://localhost:5173")
+    print(f"\n[MOBILE] {MOBILE}")
     ctx = browser.new_context(
         viewport={"width": 390, "height": 844},
         is_mobile=True,
@@ -103,7 +103,7 @@ with sync_playwright() as p:
     ctx.close()
 
     # ── Admin ───────────────────────────────────────────────────────────
-    print("\n[ADMIN] http://localhost:5174")
+    print(f"\n[ADMIN] {ADMIN}")
     ctx = browser.new_context(viewport={"width": 1440, "height": 900})
     page = ctx.new_page()
     page.goto(ADMIN, wait_until="networkidle", timeout=15000)
